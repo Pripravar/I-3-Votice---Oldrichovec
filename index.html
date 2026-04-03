@@ -27,7 +27,7 @@ body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui
 
 #map { flex:1; width:100%; z-index:1; }
 
-#layers-panel { position:fixed; top:56px; right:0; width:250px; background:var(--panel); border-left:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:0 0 0 var(--radius); z-index:2000; display:none; padding:12px; }
+#layers-panel { position:fixed; top:56px; right:0; width:250px; max-height:calc(100vh - 70px); overflow-y:auto; background:var(--panel); border-left:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:0 0 0 var(--radius); z-index:2000; display:none; padding:12px; -webkit-overflow-scrolling:touch; }
 #layers-panel.open { display:block; }
 #layers-panel h3 { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--text2); margin-bottom:8px; margin-top:10px; }
 #layers-panel h3:first-child { margin-top:0; }
@@ -584,7 +584,7 @@ textarea.note-field { min-height:80px; resize:vertical; }
     <label class="toggle"><input type="checkbox" id="lyr-etapy" checked onchange="toggleLayer('etapy',this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row" style="padding-left:12px;">
-    <label style="font-size:12px;">↳ Etapa 1 (07.04–13.04)</label>
+    <label style="font-size:12px;">↳ Etapa 1 (07.04–21.04)</label>
     <label class="toggle"><input type="checkbox" id="lyr-etapa1" checked onchange="toggleLayer('etapa1',this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row" style="padding-left:12px;">
@@ -1777,7 +1777,7 @@ var STAVEBNI_OBJEKTY = [
 var ETAPY = [
   {
     id: 1, barva: '#fed7aa', label: '1',
-    termin: '07.04.–13.04.',
+    termin: '07.04.–21.04.',
     useky: [
       {kmOd:31.3, kmDo:32.0, strana:'vpravo', short:'07.04–13.04 // P.pruh // km 31,3–32,0'},
       {kmOd:36.6, kmDo:37.4, strana:'vpravo', short:'07.04–13.04 // P.pruh // km 36,6–37,4'},
@@ -1796,7 +1796,7 @@ var ETAPY = [
     id: 3, barva: '#ea580c', label: '3',
     termin: '21.04.–14.05.',
     useky: [
-      {kmOd:31.3, kmDo:36.6, strana:'vpravo', short:'21.04–14.05 // Pravá ½ // km 31,3–36,6'},
+      {kmOd:32.0, kmDo:36.6, strana:'vpravo', short:'21.04–14.05 // Pravá ½ // km 32,0–36,6'},
     ],
     tooltip: '21.04.–14.05. // Pravá ½ vozovky',
   },
@@ -1971,7 +1971,7 @@ function buildSO() {
     (function(od,doo){ line.on('click', function(){ zoomToKm(od,doo); }); })(so.kmOd, so.kmDo);
     line.addTo(subGroup);
 
-    var step = 10;
+    var step = 20;
     for(var pi = 1; pi < pts.length - 1; pi += step) {
       var bear2 = bearList[pi];
       var rot = bear2;
@@ -1982,7 +1982,7 @@ function buildSO() {
       var lngL = pts[pi][1] + offExtra*(180/Math.PI)*Math.sin(perpRad2)/Math.cos(pts[pi][0]*Math.PI/180);
       var lbl = L.divIcon({
         className:'',
-        html:'<div style="color:'+so.barva+';font-size:27px;font-weight:800;white-space:nowrap;'+
+        html:'<div style="color:'+so.barva+';font-size:14px;font-weight:800;white-space:nowrap;'+
              'text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;'+
              'transform:rotate('+(rot+90).toFixed(0)+'deg);transform-origin:0 50%;">'+
              so.id+'</div>',
@@ -2034,7 +2034,7 @@ function buildEtapy() {
         (function(od,doo){ line.on('click', function(){ zoomToKm(od,doo); }); })(u.kmOd, u.kmDo);
         line.addTo(subGroup);
 
-        var step = 7;
+        var step = 14;
         for(var pi = 1; pi < pts.length - 1; pi += step) {
           var bear2 = bearList[pi];
           var rot = bear2;
@@ -2046,7 +2046,7 @@ function buildEtapy() {
           var lngL = pts[pi][1] + offExtra*(180/Math.PI)*Math.sin(perpRad2)/Math.cos(pts[pi][0]*Math.PI/180);
           var lbl = L.divIcon({
             className:'',
-            html:'<div style="color:'+etapa.barva+';font-size:27px;font-weight:800;white-space:nowrap;'+
+            html:'<div style="color:'+etapa.barva+';font-size:14px;font-weight:800;white-space:nowrap;'+
                  'text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;'+
                  'transform:rotate('+(rot+90).toFixed(0)+'deg);transform-origin:0 50%;">'+
                  'E'+etapa.id+' // '+etapa.termin+'</div>',
