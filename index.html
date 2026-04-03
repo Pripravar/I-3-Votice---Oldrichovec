@@ -903,7 +903,7 @@ function addPRMarker(group, lat, lng, realKm, bear, pr) {
   // Text na PRAVÉ straně osy (opačně od staničení které je vlevo)
   // Pravá strana = bear + 90° = perpRad = (bear+90)*PI/180
   var perpRad = (bear + 90) * Math.PI / 180;
-  var offset = 200;
+  var offset = 48;
   var dx = Math.sin(perpRad) * offset;
   var dy = -Math.cos(perpRad) * offset;
   var DW = 50, DH = 24;
@@ -1909,20 +1909,28 @@ function buildSanace() {
 function buildSO() {
   var group = L.layerGroup().addTo(map);
   layerGroups.so = group;
+  var soOffset = 20; // px pod osou (na stranu staničení = vlevo = bear-90)
 
   STAVEBNI_OBJEKTY.forEach(function(so) {
     var pts = [];
     var km = so.kmOd;
     while(km <= so.kmDo + 0.001) {
       var pos = realKmToLatLng(km);
-      if(pos) pts.push(pos);
+      if(pos) {
+        var gpxM = interp(calibSorted,'realKm','gpxM',km);
+        var bear = bearingAtGpxM(gpxM);
+        // Posun vlevo od osy (strana staničení)
+        var perpRad = (bear - 90) * Math.PI / 180;
+        var off = soOffset / 6371000;
+        var lat = pos[0] + off*(180/Math.PI)*Math.cos(perpRad);
+        var lng = pos[1] + off*(180/Math.PI)*Math.sin(perpRad)/Math.cos(pos[0]*Math.PI/180);
+        pts.push([lat, lng]);
+      }
       km = Math.round((km + 0.020) * 1000) / 1000;
     }
     if(pts.length < 2) return;
 
-    var line = L.polyline(pts, {
-      color: so.barva, weight: 7, opacity: 0.55,
-    });
+    var line = L.polyline(pts, {color:so.barva, weight:7, opacity:0.55});
     line.bindTooltip(
       '<b>' + so.id + '</b> // Oprava silnice I/3<br>km ' + fmtKm(so.kmOd) + ' – ' + fmtKm(so.kmDo),
       {sticky:true, className:'so-tooltip'}
@@ -1930,7 +1938,7 @@ function buildSO() {
     (function(od,doo){ line.on('click', function(){ zoomToKm(od,doo); }); })(so.kmOd, so.kmDo);
     line.addTo(group);
 
-    // Průběžné popisky POD čárou (mírně pod osou) každých 200m
+    // Popisky POD čárou, rovnoběžně, každých 200m
     var stepLabel = 0.200;
     var kmL = so.kmOd + 0.080;
     while(kmL <= so.kmDo - 0.050) {
@@ -1938,17 +1946,19 @@ function buildSO() {
       if(posL) {
         var gpxML = interp(calibSorted,'realKm','gpxM',kmL);
         var bearL = bearingAtGpxM(gpxML);
-        // Posunout mírně doleva od osy (strana staničení)
         var perpRadL = (bearL - 90) * Math.PI / 180;
-        var offLabel = 10 / 6371000;
+        var offLabel = (soOffset + 14) / 6371000;
         var latL = posL[0] + offLabel*(180/Math.PI)*Math.cos(perpRadL);
         var lngL = posL[1] + offLabel*(180/Math.PI)*Math.sin(perpRadL)/Math.cos(posL[0]*Math.PI/180);
-        var rot = bearL % 360;
-        if(rot > 90 && rot < 270) rot = (rot+180)%360;
+        var rot = bearL;
+        if(rot > 90 && rot < 270) rot = (rot + 180) % 360;
         var lbl = L.divIcon({
           className:'',
-          html:'<div style="color:'+so.barva+';font-size:9px;font-weight:800;white-space:nowrap;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;transform:rotate('+rot+'deg);transform-origin:left center;">'+so.id+'</div>',
-          iconAnchor:[0,0],
+          html:'<div style="color:'+so.barva+';font-size:9px;font-weight:800;white-space:nowrap;'+
+               'text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;'+
+               'transform:rotate('+rot.toFixed(1)+'deg);transform-origin:0 50%;line-height:1;">'+
+               so.id+'</div>',
+          iconAnchor:[0,5],
         });
         L.marker([latL,lngL],{icon:lbl,interactive:false}).addTo(group);
       }
@@ -1984,9 +1994,7 @@ function buildEtapy() {
         }
         if(pts.length < 2) return;
 
-        var line = L.polyline(pts, {
-          color: etapa.barva, weight: 4, opacity: 0.9,
-        });
+        var line = L.polyline(pts, {color:etapa.barva, weight:4, opacity:0.9});
         line.bindTooltip(
           '<b>Etapa ' + etapa.id + '</b> // ' + etapa.tooltip + '<br>km ' + fmtKm(u.kmOd) + ' – ' + fmtKm(u.kmDo),
           {sticky:true, className:'etapa-tooltip'}
@@ -1994,7 +2002,7 @@ function buildEtapy() {
         (function(od,doo){ line.on('click', function(){ zoomToKm(od,doo); }); })(u.kmOd, u.kmDo);
         line.addTo(group);
 
-        // Průběžné popisky POD čárou každých 150m
+        // Popisky POD čárou, rovnoběžně s ní, každých 150m
         var stepLabel = 0.150;
         var kmL = u.kmOd + 0.050;
         while(kmL <= u.kmDo - 0.020) {
@@ -2004,16 +2012,20 @@ function buildEtapy() {
             var bearL = bearingAtGpxM(gpxML);
             var perpDegL = strana === 'vpravo' ? (bearL+90) : (bearL-90);
             var perpRadL = perpDegL * Math.PI / 180;
-            // POD čárou = o kousek více do strany
-            var offLabel = (offsetBase + si*10 + 12) / 6371000;
+            // Posun POD čárou = o 14px více do strany
+            var offLabel = (offsetBase + si*10 + 14) / 6371000;
             var latL = posL[0] + offLabel*(180/Math.PI)*Math.cos(perpRadL);
             var lngL = posL[1] + offLabel*(180/Math.PI)*Math.sin(perpRadL)/Math.cos(posL[0]*Math.PI/180);
-            var rot = bearL % 360;
-            if(rot > 90 && rot < 270) rot = (rot+180)%360;
+            // Rotace ve směru trasy (bear), upravit aby text šel zleva doprava
+            var rot = bearL;
+            if(rot > 90 && rot < 270) rot = (rot + 180) % 360;
             var lbl = L.divIcon({
               className:'',
-              html:'<div style="color:'+etapa.barva+';font-size:9px;font-weight:800;white-space:nowrap;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;transform:rotate('+rot+'deg);transform-origin:left center;line-height:1;">E'+etapa.id+' // '+etapa.termin+'</div>',
-              iconAnchor:[0,0],
+              html:'<div style="color:'+etapa.barva+';font-size:9px;font-weight:800;white-space:nowrap;'+
+                   'text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;'+
+                   'transform:rotate('+rot.toFixed(1)+'deg);transform-origin:0 50%;line-height:1;">'+
+                   'E'+etapa.id+' // '+etapa.termin+'</div>',
+              iconAnchor:[0,5],
             });
             L.marker([latL,lngL],{icon:lbl,interactive:false}).addTo(group);
           }
