@@ -447,6 +447,21 @@ textarea.note-field { min-height:80px; resize:vertical; }
 /* Panel zachytí touch eventy - mapa nad panelem zůstane aktivní */
 #pdf-panel, #prop-panel { touch-action: pan-x pan-y pinch-zoom; }
 #pdf-frame, #prop-iframe { touch-action: pan-x pan-y pinch-zoom; }
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+.note-pulse-ring {
+  width: 30px; height: 30px;
+  border: 3px solid #f5a623;
+  border-radius: 50%;
+  animation: pulse-ring 1.2s ease-out infinite;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
 </style>
 </head>
 <body>
@@ -507,7 +522,7 @@ textarea.note-field { min-height:80px; resize:vertical; }
     <div id="pdf-title">Situace</div>
     <div id="pdf-counter"></div>
     <button id="btn-pdf-next" onclick="docNav(1)">&#8250;</button>
-    <button onclick="if(currentPdfSrc)window.open(currentPdfSrc,'_blank')" title="Otevřít v novém okně" style="background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:4px 6px;">↗</button>
+    <button onclick="if(currentPdfSrc)window.open(pdfViewerUrl(currentPdfSrc),'_blank')" title="Otevřít v novém okně" style="background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:4px 6px;">↗</button>
     <button id="btn-pdf-fs" onclick="togglePdfFs()">⛶</button>
     <button id="btn-pdf-close" onclick="closePdf()">✕</button>
   </div>
@@ -750,6 +765,17 @@ function initMap() {
 
   map.on('dragstart',function(){gpsCentering=false;});
   map.on('click',function(){closeLayersPanel();});
+
+  // Při touch na PDF/prop panelu - vypni Leaflet aby nepřebíral pinch-zoom
+  setTimeout(function() {
+    ['pdf-panel','prop-panel'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if(!el) return;
+      el.addEventListener('touchstart', function(){ disableMapForPdf(true);  }, {passive:true});
+      el.addEventListener('touchend',   function(){ disableMapForPdf(false); }, {passive:true});
+      el.addEventListener('touchcancel',function(){ disableMapForPdf(false); }, {passive:true});
+    });
+  }, 500);
 }
 
 // ── TRASA ─────────────────────────────
@@ -1013,8 +1039,14 @@ function isMobile() {
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
 }
 
+function pdfViewerUrl(src) {
+  // Absolutní URL pro PDF.js viewer
+  var base = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
+  var abs = src.startsWith('http') ? src : base + src;
+  return 'https://mozilla.github.io/pdf.js/web/viewer.html?file=' + encodeURIComponent(abs);
+}
 function openPdfExternal() {
-  if(currentPdfSrc) window.open(currentPdfSrc, '_blank');
+  if(currentPdfSrc) window.open(pdfViewerUrl(currentPdfSrc), '_blank');
 }
 
 function renderDocPage(realKm) {
@@ -1275,54 +1307,30 @@ function selectNoteMarker(marker, noteId) {
     var el = selectedNoteMarker.getElement();
     if(el) { var op = el.querySelector('.note-marker-pin'); if(op) op.classList.remove('selected'); }
   }
-  // Smazat starou šipku
-  var oldArrow = document.getElementById('note-arrow-overlay');
-  if(oldArrow) oldArrow.remove();
-  selectedNoteArrow = null;
+  if(selectedNoteArrow) { map.removeLayer(selectedNoteArrow); selectedNoteArrow = null; }
+  map.off('move zoom moveend', updateArrowPosition);
 
   selectedNoteMarker = marker;
 
-  // Přidat selected třídu na pin
+  // Selected CSS na pin
   setTimeout(function() {
     var el = marker.getElement();
-    if(!el) return;
-    var pin = el.querySelector('.note-marker-pin');
-    if(pin) pin.classList.add('selected');
+    if(el) { var pin = el.querySelector('.note-marker-pin'); if(pin) pin.classList.add('selected'); }
+  }, 50);
 
-    // Šipka jako DOM element přímo nad Leaflet markerem
-    var markerEl = marker.getElement();
-    if(!markerEl) return;
-    var rect = markerEl.getBoundingClientRect();
-    var mapRect = document.getElementById('map').getBoundingClientRect();
-    var arrow = document.createElement('div');
-    arrow.id = 'note-arrow-overlay';
-    arrow.style.cssText = [
-      'position:fixed',
-      'left:' + (rect.left + rect.width/2 - 13) + 'px',
-      'top:' + (rect.top - 28) + 'px',
-      'width:26px',
-      'height:24px',
-      'pointer-events:none',
-      'z-index:9999',
-      'animation:pulse-arrow 0.9s ease-in-out infinite',
-    ].join(';');
-    arrow.innerHTML = '<div style="width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:22px solid #f5a623;filter:drop-shadow(0 0 4px #e94560);margin:auto;"></div>';
-    document.body.appendChild(arrow);
-    selectedNoteArrow = arrow;
-
-    // Aktualizuj pozici šipky při pohybu mapy
-    map.on('move zoom', updateArrowPosition);
-  }, 80);
+  // Pulzující kroužek jako Leaflet marker na stejné pozici
+  var latlng = marker.getLatLng();
+  var ringIcon = L.divIcon({
+    className: '',
+    html: '<div style="position:relative;width:30px;height:30px;"><div class=\"note-pulse-ring\"></div><div style=\"position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-top:20px solid #f5a623;filter:drop-shadow(0 0 4px #e94560);\"></div></div>',
+    iconSize: [30, 50],
+    iconAnchor: [15, 50],
+  });
+  selectedNoteArrow = L.marker(latlng, {icon: ringIcon, zIndexOffset: 800, interactive: false});
+  selectedNoteArrow.addTo(map);
 }
 
-function updateArrowPosition() {
-  if(!selectedNoteMarker || !selectedNoteArrow) return;
-  var el = selectedNoteMarker.getElement();
-  if(!el) return;
-  var rect = el.getBoundingClientRect();
-  selectedNoteArrow.style.left = (rect.left + rect.width/2 - 13) + 'px';
-  selectedNoteArrow.style.top  = (rect.top - 28) + 'px';
-}
+function updateArrowPosition() {}
 
 // ── Dlouhý stisk mapy = nová poznámka ─────────────────
 function initLongPress() {
@@ -1728,7 +1736,7 @@ function renderPropPage(idx) {
 }
 
 function openPropPdfExternal() {
-  if(currentPropSrc) window.open(currentPropSrc, '_blank');
+  if(currentPropSrc) window.open(pdfViewerUrl(currentPropSrc), '_blank');
 }
 
 
@@ -1802,7 +1810,7 @@ function loadPropNotes(propId) {
           var img = document.createElement('img');
           img.src = src;
           img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:4px;cursor:pointer;';
-          img.onclick = function(){ window.open(src,'_blank'); };
+          img.onclick = function(){ window.open(pdfViewerUrl(src),'_blank'); };
           photoRow.appendChild(img);
         });
         div.appendChild(photoRow);
@@ -2017,7 +2025,7 @@ function closePropEdit() {
 <div id="prop-panel" style="touch-action:pan-x pan-y pinch-zoom;">
   <div id="prop-header">
     <div id="prop-title">Propustek</div>
-    <button onclick="if(currentPropSrc)window.open(currentPropSrc,'_blank')" title="Otevřít v novém okně" style="background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:4px 6px;">↗</button>
+    <button onclick="if(currentPropSrc)window.open(pdfViewerUrl(currentPropSrc),'_blank')" title="Otevřít v novém okně" style="background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:4px 6px;">↗</button>
     <button id="btn-prop-fs" onclick="togglePropFs()">⛶</button>
     <button id="btn-prop-close" onclick="closePropPanel()">✕</button>
   </div>
