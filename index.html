@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>I/3 Votice – Oldřichovec</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -301,6 +303,50 @@ textarea.note-field { min-height:80px; resize:vertical; }
 #pdf-panel.open #pdf-frame-wrap { cursor:default; }
 #pdf-frame { cursor:default; }
 
+
+/* ── Pulzující vybraný marker ── */
+@keyframes pulse-marker {
+  0%   { box-shadow: 0 0 0 0 rgba(233,69,96,0.7), 0 2px 6px rgba(0,0,0,.5); }
+  70%  { box-shadow: 0 0 0 12px rgba(233,69,96,0), 0 2px 6px rgba(0,0,0,.5); }
+  100% { box-shadow: 0 0 0 0 rgba(233,69,96,0), 0 2px 6px rgba(0,0,0,.5); }
+}
+@keyframes pulse-arrow {
+  0%,100% { transform: translateX(-50%) translateY(0); opacity:1; }
+  50%      { transform: translateX(-50%) translateY(-4px); opacity:0.8; }
+}
+.note-marker-pin.selected {
+  animation: pulse-marker 1.2s infinite;
+  border-color: #fff !important;
+  border-width: 3px !important;
+  z-index: 1000;
+}
+.note-arrow-wrap {
+  position: absolute;
+  left: 50%;
+  top: -44px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: pulse-arrow 1s infinite;
+  z-index: 1001;
+}
+.note-arrow {
+  width: 0; height: 0;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-top: 22px solid #f5a623;
+  filter: drop-shadow(0 0 3px rgba(233,69,96,0.8));
+  position: relative;
+}
+.note-arrow::before {
+  content: '';
+  position: absolute;
+  left: -16px; top: -26px;
+  width: 0; height: 0;
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-top: 25px solid #e94560;
+}
+
 </style>
 </head>
 <body>
@@ -374,10 +420,10 @@ textarea.note-field { min-height:80px; resize:vertical; }
 
 <script>
 var MAPY_API_KEY = 'MlBDUhUuAxwjvT7xIBwlYvsKwUBBoFFoV_Efwo6T8jU';
-var GH_TOKEN = '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';
-var GH_REPO  = 'Pripravar/I-3-Votice---Oldrichovec';
-var GH_FILE  = 'data/poznamky.json';
-var GH_API   = 'https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE;
+var FIREBASE_URL = 'https://i-3-votice---oldrichovec-default-rtdb.firebaseio.com';
+// Firebase inicializace
+firebase.initializeApp({databaseURL: FIREBASE_URL});
+var db = firebase.database();
 var KM_START = 31.450;
 var KM_END   = 37.356;
 
@@ -970,7 +1016,7 @@ function init() {
 window.addEventListener('load',init);
 
 // ═══════════════════════════════════════════════════════
-//  POZNÁMKY – GitHub Contents API
+//  POZNÁMKY – Firebase Realtime Database
 // ═══════════════════════════════════════════════════════
 var NOTE_CATS = [
   {label:'📌 Obecná',   cls:'nc-0', pin:'nm-0'},
@@ -981,9 +1027,10 @@ var NOTE_CATS = [
   {label:'🔍 Kontrola', cls:'nc-5', pin:'nm-5'},
 ];
 
-var notesData    = [];        // pole poznámek
-var notesGhSha   = null;      // SHA souboru na GitHubu (nutné pro PUT)
-var notesLayer   = null;
+var notesData      = [];
+var notesLayer     = null;
+var selectedNoteMarker = null;   // aktuálně vybraný marker
+var selectedNoteArrow  = null;   // šipka nad vybraným markerem
 var newNoteLat   = null;
 var newNoteLng   = null;
 var newNoteCat   = 0;
@@ -998,98 +1045,53 @@ function showSync(msg) {
 }
 function hideSync() { document.getElementById('sync-indicator').classList.remove('show'); }
 
-// ── GitHub API ─────────────────────────────────────────
-function ghHeaders() {
-  return {
-    'Authorization': 'token ' + GH_TOKEN,
-    'Accept': 'application/vnd.github.v3+json',
-    'Content-Type': 'application/json',
-  };
-}
-
+// ── Firebase funkce ────────────────────────────────────
 function loadNotes() {
   showSync('⏳ Načítám poznámky...');
-  fetch(GH_API + '?t=' + Date.now(), {
-    headers: ghHeaders(),
-    cache: 'no-store'
-  })
-    .then(function(r){
-      if(r.status === 404) {
-        // Soubor ještě neexistuje - vytvoříme ho
-        console.log('Soubor poznámek neexistuje, vytvářím...');
-        notesData = [];
-        hideSync();
-        renderNoteMarkers();
-        saveNotesToGh(null);
-        return null;
-      }
-      return r.json();
-    })
-    .then(function(data) {
-      if(!data) return;
-      if(data.sha) {
-        notesGhSha = data.sha;
-        try {
-          var decoded = atob(data.content.replace(/[\n\r]/g,''));
-          var parsed = JSON.parse(decodeURIComponent(escape(decoded)));
-          notesData = parsed.notes || [];
-          console.log('Načteno poznámek:', notesData.length);
-        } catch(e) {
-          console.error('Chyba parsování:', e);
-          notesData = [];
-        }
-      } else {
-        console.warn('GitHub API odpověď bez SHA:', data);
-        notesData = [];
-      }
+  db.ref('poznamky').on('value', function(snapshot) {
+    notesData = [];
+    var val = snapshot.val();
+    if(val) {
+      Object.keys(val).forEach(function(key) {
+        notesData.push(val[key]);
+      });
+    }
+    hideSync();
+    renderNoteMarkers();
+  }, function(error) {
+    console.error('Firebase chyba:', error);
+    hideSync();
+    showToast('⚠️ Poznámky se nepodařilo načíst', 3000);
+  });
+}
+
+function saveNote_toFirebase(note, callback) {
+  showSync('⏳ Ukládám...');
+  db.ref('poznamky/' + note.id).set(note)
+    .then(function() {
       hideSync();
-      renderNoteMarkers();
+      showToast('✅ Uloženo', 1500);
+      if(callback) callback();
     })
-    .catch(function(e){
-      console.error('Chyba načítání poznámek:', e);
+    .catch(function(e) {
+      console.error('Chyba uložení:', e);
       hideSync();
-      showToast('⚠️ Poznámky se nepodařilo načíst',3000);
+      showToast('❌ Chyba uložení', 2500);
     });
 }
 
-function saveNotesToGh(callback) {
-  showSync('⏳ Ukládám...');
-  var payload = JSON.stringify({notes: notesData}, null, 0);
-  var encoded = btoa(unescape(encodeURIComponent(payload)));
-  var body = {message: 'Aktualizace poznámek', content: encoded};
-  if(notesGhSha) body.sha = notesGhSha;
-  console.log('Ukládám poznámky, SHA:', notesGhSha, 'počet:', notesData.length);
-  fetch(GH_API, {
-    method: 'PUT',
-    headers: ghHeaders(),
-    body: JSON.stringify(body)
-  })
-  .then(function(r){
-    console.log('Save response status:', r.status);
-    return r.json();
-  })
-  .then(function(data){
-    console.log('Save response:', data);
-    if(data.content && data.content.sha) {
-      notesGhSha = data.content.sha;
+function deleteNote_fromFirebase(noteId, callback) {
+  showSync('⏳ Mažu...');
+  db.ref('poznamky/' + noteId).remove()
+    .then(function() {
       hideSync();
-      showToast('✅ Uloženo',1500);
+      showToast('🗑️ Smazáno', 1500);
       if(callback) callback();
-    } else if(data.message) {
-      // GitHub vrátil chybu
+    })
+    .catch(function(e) {
       hideSync();
-      console.error('GitHub chyba:', data.message);
-      showToast('❌ ' + data.message, 3000);
-    } else {
-      hideSync();
-      if(callback) callback();
-    }
-  })
-  .catch(function(e){
-    console.error('Chyba uložení:', e);
-    hideSync();
-    showToast('❌ Chyba uložení - zkontrolujte připojení',3000);
-  });
+      showToast('❌ Chyba mazání', 2500);
+    });
 }
 
 // ── Markery ────────────────────────────────────────────
@@ -1099,19 +1101,56 @@ function renderNoteMarkers() {
     layerGroups.notes = notesLayer;
   } else {
     notesLayer.clearLayers();
+    selectedNoteMarker = null;
+    selectedNoteArrow  = null;
   }
   notesData.forEach(function(note) {
     var cat = NOTE_CATS[note.cat] || NOTE_CATS[0];
     var icon = L.divIcon({
       className: '',
-      html: '<div class="note-marker-pin ' + cat.pin + '"></div>',
+      html: '<div class="note-marker-pin ' + cat.pin + '" id="npin-' + note.id + '"></div>',
       iconSize: [30,30],
       iconAnchor: [15,30],
     });
     var m = L.marker([note.lat, note.lng], {icon:icon, zIndexOffset:500});
-    (function(n){ m.on('click', function(e){ L.DomEvent.stopPropagation(e); openNoteDetail(n.id); }); })(note);
+    (function(n){
+      m.on('click', function(e){
+        L.DomEvent.stopPropagation(e);
+        selectNoteMarker(m, n.id);
+        openNoteDetail(n.id);
+      });
+    })(note);
     m.addTo(notesLayer);
   });
+}
+
+function selectNoteMarker(marker, noteId) {
+  // Zrušit předchozí výběr
+  if(selectedNoteMarker) {
+    var oldPin = selectedNoteMarker.getElement().querySelector('.note-marker-pin');
+    if(oldPin) oldPin.classList.remove('selected');
+  }
+  if(selectedNoteArrow) {
+    map.removeLayer(selectedNoteArrow);
+    selectedNoteArrow = null;
+  }
+
+  selectedNoteMarker = marker;
+
+  // Přidat třídu selected na pin
+  var pin = marker.getElement() && marker.getElement().querySelector('.note-marker-pin');
+  if(pin) pin.classList.add('selected');
+
+  // Přidat šipku nad marker
+  var latlng = marker.getLatLng();
+  var arrowIcon = L.divIcon({
+    className: '',
+    html: '<div class="note-arrow-wrap"><div class="note-arrow"></div></div>',
+    iconSize: [28, 44],
+    iconAnchor: [14, 44],
+  });
+  selectedNoteArrow = L.marker(latlng, {icon: arrowIcon, zIndexOffset:600, interactive:false});
+  selectedNoteArrow.addTo(notesLayer);
 }
 
 // ── Dlouhý stisk mapy = nová poznámka ─────────────────
@@ -1218,10 +1257,8 @@ function saveNote() {
     time:    new Date().toLocaleString('cs-CZ'),
   };
 
-  notesData.push(note);
   closeNoteModal();
-  renderNoteMarkers();
-  saveNotesToGh(null);
+  saveNote_toFirebase(note, null);
 }
 
 // ── Detail poznámky ────────────────────────────────────
@@ -1265,6 +1302,16 @@ function openNoteDetail(id) {
 function closeNoteDetail() {
   document.getElementById('note-detail').classList.remove('open');
   currentNoteId = null;
+  // Zrušit výběr markeru
+  if(selectedNoteMarker) {
+    var pin = selectedNoteMarker.getElement() && selectedNoteMarker.getElement().querySelector('.note-marker-pin');
+    if(pin) pin.classList.remove('selected');
+    selectedNoteMarker = null;
+  }
+  if(selectedNoteArrow) {
+    map.removeLayer(selectedNoteArrow);
+    selectedNoteArrow = null;
+  }
 }
 
 function openPhotoFs(src) {
@@ -1282,16 +1329,15 @@ function deleteNotePhoto(noteId, photoIdx) {
   var note = notesData.filter(function(n){ return n.id === noteId; })[0];
   if(!note) return;
   note.photos.splice(photoIdx, 1);
-  saveNotesToGh(function(){ openNoteDetail(noteId); });
+  saveNote_toFirebase(note, function(){ openNoteDetail(noteId); });
 }
 
 function deleteCurrentNote() {
   if(!currentNoteId) return;
   if(!confirm('Smazat tuto poznámku?')) return;
-  notesData = notesData.filter(function(n){ return n.id !== currentNoteId; });
+  var id = currentNoteId;
   closeNoteDetail();
-  renderNoteMarkers();
-  saveNotesToGh(null);
+  deleteNote_fromFirebase(id, null);
 }
 
 // ── Layer toggle pro poznámky ──────────────────────────
@@ -1372,8 +1418,7 @@ function saveEditNote() {
   note.edited = new Date().toLocaleString('cs-CZ');
 
   closeEditModal();
-  renderNoteMarkers();
-  saveNotesToGh(function(){ openNoteDetail(note.id); });
+  saveNote_toFirebase(note, function(){ openNoteDetail(note.id); });
 }
 
 // Přidat foto v editaci
