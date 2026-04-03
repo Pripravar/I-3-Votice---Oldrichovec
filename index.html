@@ -465,9 +465,9 @@ textarea.note-field { min-height:80px; resize:vertical; }
 }
 
 .prikop-tooltip {
-  background: rgba(88,28,135,0.9) !important;
-  color: #f3e8ff !important;
-  border: 1px solid #c084fc !important;
+  background: rgba(30,64,175,0.95) !important;
+  color: #dbeafe !important;
+  border: 1px solid #60a5fa !important;
   border-radius: 6px !important;
   font-size: 12px !important;
   line-height: 1.5 !important;
@@ -495,7 +495,7 @@ textarea.note-field { min-height:80px; resize:vertical; }
 .sanace-label {
   background: repeating-linear-gradient(
     45deg,
-    rgba(251,191,36,0.85) 0px,
+    rgba(14,165,233,0.85) 0px,
     rgba(251,191,36,0.85) 4px,
     rgba(30,20,0,0.7) 4px,
     rgba(30,20,0,0.7) 8px
@@ -508,12 +508,12 @@ textarea.note-field { min-height:80px; resize:vertical; }
   white-space: nowrap;
   box-shadow: 0 1px 4px rgba(0,0,0,.6);
   text-shadow: 0 1px 2px rgba(0,0,0,0.9);
-  border: 1px solid rgba(251,191,36,0.6);
+  border: 1px solid rgba(14,165,233,0.6);
 }
 .sanace-tooltip {
-  background: rgba(120,53,15,0.95) !important;
-  color: #fef3c7 !important;
-  border: 1px solid #fbbf24 !important;
+  background: rgba(7,89,133,0.95) !important;
+  color: #e0f2fe !important;
+  border: 1px solid #0ea5e9 !important;
   border-radius: 6px !important;
   font-size: 12px !important;
   line-height: 1.5 !important;
@@ -854,8 +854,8 @@ function initMap() {
 function buildRoute() {
   layerGroups.trasa=L.layerGroup().addTo(map);
   var ll=GPX_POINTS.map(function(p){return[p[0],p[1]];});
-  L.polyline(ll,{color:'#000',weight:9,opacity:0.2,interactive:false}).addTo(layerGroups.trasa);
-  L.polyline(ll,{color:'#e94560',weight:4,opacity:0.95,interactive:false}).addTo(layerGroups.trasa);
+  L.polyline(ll,{color:'#000',weight:9,opacity:0.2,interactive:false,dashArray:'12 6'}).addTo(layerGroups.trasa);
+  L.polyline(ll,{color:'#e94560',weight:4,opacity:0.95,interactive:false,dashArray:'12 6'}).addTo(layerGroups.trasa);
 
   var startPos=realKmToLatLng(KM_START), endPos=realKmToLatLng(KM_END);
   var mkS=L.divIcon({className:'',iconAnchor:[0,10],html:'<div style="background:#48bb78;color:#000;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5);white-space:nowrap;">▶ km '+fmtKm(KM_START)+'</div>'});
@@ -903,7 +903,7 @@ function addPRMarker(group, lat, lng, realKm, bear, pr) {
   // Text na PRAVÉ straně osy (opačně od staničení které je vlevo)
   // Pravá strana = bear + 90° = perpRad = (bear+90)*PI/180
   var perpRad = (bear + 90) * Math.PI / 180;
-  var offset = 32;
+  var offset = 55;
   var dx = Math.sin(perpRad) * offset;
   var dy = -Math.cos(perpRad) * offset;
   var DW = 50, DH = 24;
@@ -1739,46 +1739,46 @@ var SANACE = [
 //  STAVEBNÍ OBJEKTY SO 101
 // ═══════════════════════════════════
 var STAVEBNI_OBJEKTY = [
-  {id:'SO 101.1', kmOd:31.450, kmDo:32.765, barva:'#34d399', label:'SO 101.1'},
-  {id:'SO 101.2', kmOd:32.765, kmDo:34.615, barva:'#60a5fa', label:'SO 101.2'},
-  {id:'SO 101.3', kmOd:34.615, kmDo:37.357, barva:'#f97316', label:'SO 101.3'},
+  {id:'SO 101.1', kmOd:31.450, kmDo:32.765, barva:'#93c5fd', label:'SO 101.1', short:'SO 101.1 // km 31,450–32,765'},
+  {id:'SO 101.2', kmOd:32.765, kmDo:34.615, barva:'#3b82f6', label:'SO 101.2', short:'SO 101.2 // km 32,765–34,615'},
+  {id:'SO 101.3', kmOd:34.615, kmDo:37.357, barva:'#1d4ed8', label:'SO 101.3', short:'SO 101.3 // km 34,615–37,357'},
 ];
 // ═══════════════════════════════════
 //  ETAPY VÝSTAVBY
 // ═══════════════════════════════════
 var ETAPY = [
   {
-    id: 1, barva: '#facc15', label: 'Etapa 1',
+    id: 1, barva: '#fed7aa', label: '1',
     termin: '07.04.–13.04.',
     useky: [
-      {kmOd:31.3, kmDo:32.0, strana:'vpravo', popis:'Uzavřen pravý pruh směr Tábor, zúžení levého'},
-      {kmOd:36.6, kmDo:37.4, strana:'vpravo', popis:'Uzavřen pravý pruh, uzavřena křižovatka Oldřichovec'},
+      {kmOd:31.3, kmDo:32.0, strana:'vpravo', short:'07.04–13.04 // P.pruh // km 31,3–32,0'},
+      {kmOd:36.6, kmDo:37.4, strana:'vpravo', short:'07.04–13.04 // P.pruh // km 36,6–37,4'},
     ],
-    provoz: 'Kyvadlový: 06–18 h poučené osoby, 18–06 h SSZ; šíře pruhu 2,9 m',
+    tooltip: '07.04.–13.04. // Pravý pruh',
   },
   {
-    id: 2, barva: '#fb923c', label: 'Etapa 2',
+    id: 2, barva: '#fb923c', label: '2',
     termin: '13.04.–21.04.',
     useky: [
-      {kmOd:36.6, kmDo:37.4, strana:'obe', popis:'Uzavřen levý + vnitřní pravý pruh, uzavřena křižovatka Oldřichovec'},
+      {kmOd:36.6, kmDo:37.4, strana:'obe', short:'13.04–21.04 // L+P.pruh // km 36,6–37,4'},
     ],
-    provoz: 'Kyvadlový: 06–18 h poučené osoby, 18–06 h SSZ',
+    tooltip: '13.04.–21.04. // Levý + pravý pruh',
   },
   {
-    id: 3, barva: '#f87171', label: 'Etapa 3',
+    id: 3, barva: '#ea580c', label: '3',
     termin: '21.04.–14.05.',
     useky: [
-      {kmOd:31.3, kmDo:36.6, strana:'vpravo', popis:'Uzavřena pravá ½ vozovky, uzavřeny křižovatky (MÚK Votice, Hostišov, Buchov)'},
+      {kmOd:31.3, kmDo:36.6, strana:'vpravo', short:'21.04–14.05 // Pravá ½ // km 31,3–36,6'},
     ],
-    provoz: 'Obousměrně po levé ½, režim 1+1, šíře pruhu 2,9 m',
+    tooltip: '21.04.–14.05. // Pravá ½ vozovky',
   },
   {
-    id: 4, barva: '#c084fc', label: 'Etapa 4',
+    id: 4, barva: '#9a3412', label: '4',
     termin: '14.05.–07.06.',
     useky: [
-      {kmOd:31.3, kmDo:36.6, strana:'vlevo', popis:'Uzavřena levá ½ vozovky, uzavřeny stejné křižovatky jako etapa 3'},
+      {kmOd:31.3, kmDo:36.6, strana:'vlevo', short:'14.05–07.06 // Levá ½ // km 31,3–36,6'},
     ],
-    provoz: 'Obousměrně po pravé ½, režim 1+1, šíře pruhu 2,9 m',
+    tooltip: '14.05.–07.06. // Levá ½ vozovky',
   },
 ];
 // ═══════════════════════════════════
@@ -1869,7 +1869,7 @@ function buildSanace() {
       var rLat = rightStart[0] + t*(rightEnd[0]-rightStart[0]);
       var rLng = rightStart[1] + t*(rightEnd[1]-rightStart[1]);
       L.polyline([[lLat,lLng],[rLat,rLng]], {
-        color:'#fbbf24', weight:2, opacity:0.7, interactive:false
+        color:'#0ea5e9', weight:2, opacity:0.8, interactive:false
       }).addTo(group);
     }
 
@@ -1898,12 +1898,20 @@ function buildSO() {
   layerGroups.so = group;
 
   STAVEBNI_OBJEKTY.forEach(function(so) {
-    // Čára přímo na ose - interpoluj body každých 20m
     var pts = [];
     var km = so.kmOd;
+    var soOffset = 12; // metrů od osy vpravo
     while(km <= so.kmDo + 0.001) {
       var pos = realKmToLatLng(km);
-      if(pos) pts.push(pos);
+      if(pos) {
+        var gpxM = interp(calibSorted,'realKm','gpxM',km);
+        var bear = bearingAtGpxM(gpxM);
+        var perpRad = (bear + 90) * Math.PI / 180;
+        var off = soOffset / 6371000;
+        var lat = pos[0] + off*(180/Math.PI)*Math.cos(perpRad);
+        var lng = pos[1] + off*(180/Math.PI)*Math.sin(perpRad)/Math.cos(pos[0]*Math.PI/180);
+        pts.push([lat, lng]);
+      }
       km = Math.round((km + 0.020) * 1000) / 1000;
     }
     if(pts.length < 2) return;
@@ -1911,32 +1919,40 @@ function buildSO() {
     var line = L.polyline(pts, {
       color: so.barva,
       weight: 7,
-      opacity: 0.5,
-      interactive: true,
+      opacity: 0.55,
     });
-
     line.bindTooltip(
-      '<b>' + so.id + '</b><br>Oprava silnice I/3<br>km ' + fmtKm(so.kmOd) + ' – ' + fmtKm(so.kmDo),
+      '<b>' + so.id + '</b> // Oprava silnice I/3<br>km ' + fmtKm(so.kmOd) + ' – ' + fmtKm(so.kmDo),
       {sticky:true, className:'so-tooltip'}
     );
     line.addTo(group);
 
-    // Štítek na začátku úseku
-    var startPos = realKmToLatLng(so.kmOd + 0.050);
-    if(startPos) {
-      var lbl = L.divIcon({
-        className:'',
-        html:'<div style="background:'+so.barva+';color:#1a1a2e;font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,0.3);">'+so.label+'</div>',
-        iconAnchor:[0,8],
-      });
-      L.marker(startPos, {icon:lbl, interactive:false}).addTo(group);
+    // Průběžné popisky každých 400m
+    var stepLabel = 0.400;
+    var kmL = so.kmOd + 0.150;
+    while(kmL <= so.kmDo - 0.100) {
+      var posL = realKmToLatLng(kmL);
+      if(posL) {
+        var gpxML = interp(calibSorted,'realKm','gpxM',kmL);
+        var bearL = bearingAtGpxM(gpxML);
+        var rot = bearL % 360;
+        if(rot > 90 && rot < 270) rot = (rot+180)%360;
+        var lbl = L.divIcon({
+          className:'',
+          html:'<div style="color:'+so.barva+';font-size:9px;font-weight:800;white-space:nowrap;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;transform:rotate('+rot+'deg);transform-origin:left center;">'+so.id+'</div>',
+          iconAnchor:[0,5],
+        });
+        L.marker(posL,{icon:lbl,interactive:false}).addTo(group);
+      }
+      kmL = Math.round((kmL+stepLabel)*1000)/1000;
     }
   });
 }
+
 function buildEtapy() {
   var group = L.layerGroup().addTo(map);
   layerGroups.etapy = group;
-  var offsetBase = 10; // odsazení od osy v metrech (přibližně px)
+  var offsetBase = 28;
 
   ETAPY.forEach(function(etapa) {
     etapa.useky.forEach(function(u) {
@@ -1951,7 +1967,7 @@ function buildEtapy() {
             var bear = bearingAtGpxM(gpxM);
             var perpDeg = strana === 'vpravo' ? (bear+90) : (bear-90);
             var perpRad = perpDeg * Math.PI / 180;
-            var off = (offsetBase + si*8) / 6371000;
+            var off = (offsetBase + si*10) / 6371000;
             var lat = pos[0] + off*(180/Math.PI)*Math.cos(perpRad);
             var lng = pos[1] + off*(180/Math.PI)*Math.sin(perpRad)/Math.cos(pos[0]*Math.PI/180);
             pts.push([lat,lng]);
@@ -1962,34 +1978,44 @@ function buildEtapy() {
 
         var line = L.polyline(pts, {
           color: etapa.barva,
-          weight: 5,
-          opacity: 0.85,
+          weight: 4,
+          opacity: 0.9,
         });
-
-        var stranaText = strana === 'vpravo' ? '➡️ vpravo' : '⬅️ vlevo';
         line.bindTooltip(
-          '<b>' + etapa.label + '</b> (' + etapa.termin + ')<br>' +
-          stranaText + ' — km ' + fmtKm(u.kmOd) + ' – ' + fmtKm(u.kmDo) + '<br>' +
-          u.popis + '<br><i>' + etapa.provoz + '</i>',
+          '<b>Etapa ' + etapa.id + '</b> // ' + etapa.tooltip + '<br>km ' + fmtKm(u.kmOd) + ' – ' + fmtKm(u.kmDo),
           {sticky:true, className:'etapa-tooltip'}
         );
         line.addTo(group);
-      });
 
-      // Štítek uprostřed
-      var midKm = (u.kmOd + u.kmDo)/2;
-      var midPos = realKmToLatLng(midKm);
-      if(midPos) {
-        var lbl = L.divIcon({
-          className:'',
-          html:'<div style="background:'+etapa.barva+';color:#1a1a2e;font-size:10px;font-weight:800;padding:2px 6px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.5);">'+etapa.label+'</div>',
-          iconAnchor:[25,8],
-        });
-        L.marker(midPos,{icon:lbl,interactive:false}).addTo(group);
-      }
+        // Průběžné popisky každých 300m
+        var stepLabel = 0.300;
+        var kmL = u.kmOd + 0.100;
+        while(kmL <= u.kmDo - 0.050) {
+          var posL = realKmToLatLng(kmL);
+          if(posL) {
+            var gpxML = interp(calibSorted,'realKm','gpxM',kmL);
+            var bearL = bearingAtGpxM(gpxML);
+            var perpDegL = strana === 'vpravo' ? (bearL+90) : (bearL-90);
+            var perpRadL = perpDegL * Math.PI / 180;
+            var offL = (offsetBase + si*10 + 8) / 6371000;
+            var latL = posL[0] + offL*(180/Math.PI)*Math.cos(perpRadL);
+            var lngL = posL[1] + offL*(180/Math.PI)*Math.sin(perpRadL)/Math.cos(posL[0]*Math.PI/180);
+            var rot = (bearL + (strana==='vpravo'?0:180)) % 360;
+            if(rot > 90 && rot < 270) rot = (rot+180)%360;
+            var lbl = L.divIcon({
+              className:'',
+              html:'<div style="color:'+etapa.barva+';font-size:9px;font-weight:800;white-space:nowrap;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;transform:rotate('+rot+'deg);transform-origin:left center;">E'+etapa.id+' // '+etapa.termin+'</div>',
+              iconAnchor:[0,5],
+            });
+            L.marker([latL,lngL],{icon:lbl,interactive:false}).addTo(group);
+          }
+          kmL = Math.round((kmL+stepLabel)*1000)/1000;
+        }
+      });
     });
   });
 }
+
 function buildPrikopy() {
   var group = L.layerGroup().addTo(map);
   layerGroups.prikopy = group;
@@ -2020,7 +2046,7 @@ function buildPrikopy() {
 
       // Čára
       var line = L.polyline(pts, {
-        color: '#c084fc',
+        color: '#1e40af',
         weight: 3,
         opacity: 0.85,
         interactive: true,
@@ -2049,7 +2075,7 @@ function buildPrikopy() {
         var lngM = midPos[1] + (offset + 10) / R * (180 / Math.PI) * Math.sin(perpRadM) / Math.cos(midPos[0] * Math.PI / 180);
         var labelIcon = L.divIcon({
           className: '',
-          html: '<div style="background:rgba(192,132,252,0.85);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.5);">🧹 ' + u.delka + 'm</div>',
+          html: '<div style="background:#1e40af;color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.5);">🧹 Čištění příkopů - ' + u.delka + ' m</div>',
           iconAnchor: [20, 10],
         });
         L.marker([latM, lngM], {icon: labelIcon, interactive: false}).addTo(group);
