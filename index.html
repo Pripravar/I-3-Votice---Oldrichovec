@@ -268,6 +268,7 @@ textarea.note-field { min-height:80px; resize:vertical; }
 #note-detail-footer { padding:10px 14px; border-top:1px solid var(--border); display:flex; gap:8px; }
 .note-del-btn { flex:1; background:var(--accent); color:#fff; border:none; border-radius:8px; padding:9px; font-size:13px; font-weight:700; cursor:pointer; }
 .note-close-btn { flex:1; background:var(--panel2); color:var(--text2); border:1px solid var(--border); border-radius:8px; padding:9px; font-size:13px; cursor:pointer; }
+.note-edit-btn { flex:1; background:#1565c0; color:#fff; border:none; border-radius:8px; padding:9px; font-size:13px; font-weight:700; cursor:pointer; }
 
 /* Fullscreen foto */
 #photo-fs { position:fixed; inset:0; background:rgba(0,0,0,.95); z-index:5000; display:none; align-items:center; justify-content:center; cursor:zoom-out; }
@@ -281,6 +282,20 @@ textarea.note-field { min-height:80px; resize:vertical; }
   font-size:11px; color:var(--text2); z-index:1200; display:none;
 }
 #sync-indicator.show { display:block; }
+
+
+#note-edit-modal {
+  position:fixed; inset:0; background:rgba(0,0,0,.7);
+  z-index:4500; display:none; align-items:flex-end; justify-content:center;
+}
+#note-edit-modal.open { display:flex; }
+#note-edit-box {
+  background:var(--panel); width:100%; max-width:520px;
+  border-radius:16px 16px 0 0; padding:16px;
+  max-height:90vh; overflow-y:auto;
+  border-top:2px solid #1565c0;
+}
+#note-edit-box h3 { font-size:15px; font-weight:700; margin-bottom:12px; color:#4fc3f7; }
 
 </style>
 </head>
@@ -396,41 +411,41 @@ var CALIB_POINTS = [
 
 // ── DOKUMENTY podle km ──────────────────
 var DOCS_SITUACE = [
-  {kmOd:31.450, kmDo:32.765, soubor:'pdf/situace_31_450_až_32_765.pdf', nazev:'Situace SO 101.1'},
-  {kmOd:32.766, kmDo:34.160, soubor:'pdf/situace_32_766_až_34_16.pdf',  nazev:'Situace SO 101.2 č.1'},
-  {kmOd:34.161, kmDo:35.100, soubor:'pdf/situace_34_161_až_35_100.pdf', nazev:'Situace SO 101.2 č.2'},
-  {kmOd:35.101, kmDo:35.940, soubor:'pdf/situace_35_101_až_35_940.pdf', nazev:'Situace SO 101.3 č.3'},
-  {kmOd:35.941, kmDo:37.356, soubor:'pdf/situace_35_941_až_37_35.pdf',  nazev:'Situace SO 101.3 č.4'},
+  {kmOd:31.450, kmDo:32.765, soubor:'situace_31_450_až_32_765.pdf', nazev:'Situace SO 101.1'},
+  {kmOd:32.766, kmDo:34.160, soubor:'situace_32_766_až_34_16.pdf',  nazev:'Situace SO 101.2 č.1'},
+  {kmOd:34.161, kmDo:35.100, soubor:'situace_34_161_až_35_100.pdf', nazev:'Situace SO 101.2 č.2'},
+  {kmOd:35.101, kmDo:35.940, soubor:'situace_35_101_až_35_940.pdf', nazev:'Situace SO 101.3 č.3'},
+  {kmOd:35.941, kmDo:37.356, soubor:'situace_35_941_až_37_35.pdf',  nazev:'Situace SO 101.3 č.4'},
 ];
 var DOCS_PP = [
-  {kmOd:31.450, kmDo:32.765, soubor:'pdf/PP_31_450_až_32_765.pdf', nazev:'Podélný profil SO 101.1'},
-  {kmOd:32.766, kmDo:34.160, soubor:'pdf/PP_32_766_až_34_16.pdf',  nazev:'Podélný profil č.1'},
-  {kmOd:34.161, kmDo:35.100, soubor:'pdf/PP_34_161_až_35_100.pdf', nazev:'Podélný profil č.2'},
-  {kmOd:35.101, kmDo:35.940, soubor:'pdf/PP_35_101_až_35_940.pdf', nazev:'Podélný profil č.3'},
-  {kmOd:35.941, kmDo:37.356, soubor:'pdf/PP_35_941_až_37_35.pdf',  nazev:'Podélný profil č.4'},
+  {kmOd:31.450, kmDo:32.765, soubor:'PP_31_450_až_32_765.pdf', nazev:'Podélný profil SO 101.1'},
+  {kmOd:32.766, kmDo:34.160, soubor:'PP_32_766_až_34_16.pdf',  nazev:'Podélný profil č.1'},
+  {kmOd:34.161, kmDo:35.100, soubor:'PP_34_161_až_35_100.pdf', nazev:'Podélný profil č.2'},
+  {kmOd:35.101, kmDo:35.940, soubor:'PP_35_101_až_35_940.pdf', nazev:'Podélný profil č.3'},
+  {kmOd:35.941, kmDo:37.356, soubor:'PP_35_941_až_37_35.pdf',  nazev:'Podélný profil č.4'},
 ];
 var DOCS_VPR = [
-  {kmOd:31.450, kmDo:32.765, soubor:'pdf/101_1_04_Vzorove_pricne_rezy.pdf',               nazev:'Vzorové příčné řezy SO 101.1'},
-  {kmOd:32.766, kmDo:34.615, soubor:'pdf/101_2_3_04_1_Vzorove_pricne_rezy_SO_101_2.pdf',  nazev:'Vzorové příčné řezy SO 101.2'},
-  {kmOd:34.615, kmDo:37.356, soubor:'pdf/101_2_3_04_2_Vzorove_pricne_rezy_SO_101_3.pdf',  nazev:'Vzorové příčné řezy SO 101.3'},
+  {kmOd:31.450, kmDo:32.765, soubor:'101_1_04_Vzorove_pricne_rezy.pdf',               nazev:'Vzorové příčné řezy SO 101.1'},
+  {kmOd:32.766, kmDo:34.615, soubor:'101_2_3_04_1_Vzorove_pricne_rezy_SO_101_2.pdf',  nazev:'Vzorové příčné řezy SO 101.2'},
+  {kmOd:34.615, kmDo:37.356, soubor:'101_2_3_04_2_Vzorove_pricne_rezy_SO_101_3.pdf',  nazev:'Vzorové příčné řezy SO 101.3'},
 ];
 
 // Pracovní příčné řezy – každý záznam: {km, soubor, rezIdx}
 // rezIdx = 1-based pořadí řezu v souboru (pro scroll v PDF)
 var DOCS_PR = (function() {
   var files = [
-    {s:'pdf/101_1_Pracovni_Pracovni_rezy_01.pdf', rezy:[31.450,31.460,31.480,31.500,31.520,31.540,31.560,31.580,31.600,31.620,31.640,31.660,31.680,31.700,31.720]},
-    {s:'pdf/101_1_Pracovni_Pracovni_rezy_02.pdf', rezy:[31.740,31.760,31.780,31.800,31.820,31.840,31.860,31.880,31.900,31.920,31.940,31.960,31.980,32.000,32.020]},
-    {s:'pdf/101_1_Pracovni_Pracovni_rezy_03.pdf', rezy:[32.040,32.060,32.080,32.100,32.120,32.140,32.160,32.180,32.200,32.220,32.240,32.260,32.280,32.300,32.320]},
-    {s:'pdf/101_1_Pracovni_Pracovni_rezy_04.pdf', rezy:[32.340,32.360,32.380,32.400,32.420,32.440,32.460,32.480,32.500,32.520,32.540,32.560,32.580,32.600,32.620]},
-    {s:'pdf/101_1_Pracovni_Pracovni_rezy_05.pdf', rezy:[32.640,32.660,32.680,32.700,32.720,32.740,32.760,32.780,32.800,32.820,32.840,32.860]},
-    {s:'pdf/101_101_2_3_Pracovni_rezy_01.pdf',    rezy:[32.960,32.980,33.000,33.020,33.040,33.060,33.080,33.100,33.120,33.140,33.160,33.180,33.200,33.220,33.240,33.260,33.280,33.300,33.320,33.340,33.360,33.380,33.400,33.420,33.440,33.460,33.480,33.500,33.520]},
-    {s:'pdf/101_101_2_3_Pracovni_rezy_02.pdf',    rezy:[33.540,33.560,33.580,33.600,33.620,33.640,33.660,33.680,33.700,33.720,33.740,33.760,33.780,33.800,33.820,33.840,33.860,33.880,33.900,33.920,33.940,33.960,33.980,34.000,34.020,34.040]},
-    {s:'pdf/101_101_2_3_Pracovni_rezy_03.pdf',    rezy:[34.060,34.080,34.100,34.120,34.140,34.160,34.180,34.200,34.220,34.240,34.260,34.280,34.300,34.320,34.340,34.360,34.380,34.400,34.420,34.440,34.460,34.480,34.500,34.520,34.540,34.560,34.580,34.600,34.620,34.640]},
-    {s:'pdf/101_101_2_3_Pracovni_rezy_04.pdf',    rezy:[34.660,34.680,34.700,34.720,34.740,34.760,34.780,34.800,34.820,34.840,34.860,34.880,34.900,34.920,34.940,34.960,34.980,35.000,35.020,35.040,35.060,35.080,35.100]},
-    {s:'pdf/101_101_2_3_Pracovni_rezy_05.pdf',    rezy:[35.120,35.140,35.160,35.180,35.200,35.220,35.240,35.260,35.280,35.300,35.320,35.340,35.360,35.380,35.400,35.420,35.440,35.460,35.480,35.500,35.520,35.540,35.560,35.580,35.600,35.620,35.640,35.660,35.680,35.700,35.720,35.740,35.760,35.780,35.800,35.820,35.840,35.860,35.880,35.900,35.920,35.940]},
-    {s:'pdf/101_101_2_3_Pracovni_rezy_06.pdf',    rezy:[35.960,35.980,36.000,36.020,36.040,36.060,36.080,36.100,36.120,36.140,36.160,36.180,36.200,36.220,36.240,36.260,36.280,36.300,36.320,36.340,36.360,36.380,36.400,36.420,36.440,36.460,36.480,36.500,36.520,36.540,36.560]},
-    {s:'pdf/101_101_2_3_Pracovni_rezy_07.pdf',    rezy:[36.580,36.600,36.620,36.640,36.660,36.680,36.700,36.720,36.740,36.760,36.780,36.800,36.820,36.840,36.860,36.880,36.900,36.920,36.940,36.960,36.980,37.000,37.020,37.040,37.060,37.080,37.100,37.120,37.140,37.160,37.180,37.200,37.220,37.240,37.260,37.280,37.300,37.320,37.340]},
+    {s:'101_1_Pracovni_Pracovni_rezy_01.pdf', rezy:[31.450,31.460,31.480,31.500,31.520,31.540,31.560,31.580,31.600,31.620,31.640,31.660,31.680,31.700,31.720]},
+    {s:'101_1_Pracovni_Pracovni_rezy_02.pdf', rezy:[31.740,31.760,31.780,31.800,31.820,31.840,31.860,31.880,31.900,31.920,31.940,31.960,31.980,32.000,32.020]},
+    {s:'101_1_Pracovni_Pracovni_rezy_03.pdf', rezy:[32.040,32.060,32.080,32.100,32.120,32.140,32.160,32.180,32.200,32.220,32.240,32.260,32.280,32.300,32.320]},
+    {s:'101_1_Pracovni_Pracovni_rezy_04.pdf', rezy:[32.340,32.360,32.380,32.400,32.420,32.440,32.460,32.480,32.500,32.520,32.540,32.560,32.580,32.600,32.620]},
+    {s:'101_1_Pracovni_Pracovni_rezy_05.pdf', rezy:[32.640,32.660,32.680,32.700,32.720,32.740,32.760,32.780,32.800,32.820,32.840,32.860]},
+    {s:'101_101_2_3_Pracovni_rezy_01.pdf',    rezy:[32.960,32.980,33.000,33.020,33.040,33.060,33.080,33.100,33.120,33.140,33.160,33.180,33.200,33.220,33.240,33.260,33.280,33.300,33.320,33.340,33.360,33.380,33.400,33.420,33.440,33.460,33.480,33.500,33.520]},
+    {s:'101_101_2_3_Pracovni_rezy_02.pdf',    rezy:[33.540,33.560,33.580,33.600,33.620,33.640,33.660,33.680,33.700,33.720,33.740,33.760,33.780,33.800,33.820,33.840,33.860,33.880,33.900,33.920,33.940,33.960,33.980,34.000,34.020,34.040]},
+    {s:'101_101_2_3_Pracovni_rezy_03.pdf',    rezy:[34.060,34.080,34.100,34.120,34.140,34.160,34.180,34.200,34.220,34.240,34.260,34.280,34.300,34.320,34.340,34.360,34.380,34.400,34.420,34.440,34.460,34.480,34.500,34.520,34.540,34.560,34.580,34.600,34.620,34.640]},
+    {s:'101_101_2_3_Pracovni_rezy_04.pdf',    rezy:[34.660,34.680,34.700,34.720,34.740,34.760,34.780,34.800,34.820,34.840,34.860,34.880,34.900,34.920,34.940,34.960,34.980,35.000,35.020,35.040,35.060,35.080,35.100]},
+    {s:'101_101_2_3_Pracovni_rezy_05.pdf',    rezy:[35.120,35.140,35.160,35.180,35.200,35.220,35.240,35.260,35.280,35.300,35.320,35.340,35.360,35.380,35.400,35.420,35.440,35.460,35.480,35.500,35.520,35.540,35.560,35.580,35.600,35.620,35.640,35.660,35.680,35.700,35.720,35.740,35.760,35.780,35.800,35.820,35.840,35.860,35.880,35.900,35.920,35.940]},
+    {s:'101_101_2_3_Pracovni_rezy_06.pdf',    rezy:[35.960,35.980,36.000,36.020,36.040,36.060,36.080,36.100,36.120,36.140,36.160,36.180,36.200,36.220,36.240,36.260,36.280,36.300,36.320,36.340,36.360,36.380,36.400,36.420,36.440,36.460,36.480,36.500,36.520,36.540,36.560]},
+    {s:'101_101_2_3_Pracovni_rezy_07.pdf',    rezy:[36.580,36.600,36.620,36.640,36.660,36.680,36.700,36.720,36.740,36.760,36.780,36.800,36.820,36.840,36.860,36.880,36.900,36.920,36.940,36.960,36.980,37.000,37.020,37.040,37.060,37.080,37.100,37.120,37.140,37.160,37.180,37.200,37.220,37.240,37.260,37.280,37.300,37.320,37.340]},
   ];
   // Flatten to lookup: km (as string *1000) → {soubor, rezIdx, totalInFile}
   var map = {};
@@ -1191,6 +1206,102 @@ function toggleNotesLayer(en) {
   en ? notesLayer.addTo(map) : map.removeLayer(notesLayer);
 }
 
+
+// ── Editace poznámky ───────────────────────────────────
+var editNoteId = null;
+var editNotePhotos = [];
+
+function editCurrentNote() {
+  var note = notesData.filter(function(n){ return n.id === currentNoteId; })[0];
+  if(!note) return;
+  editNoteId = note.id;
+  editNotePhotos = (note.photos || []).slice(); // kopie pole fotek
+
+  // Nastav hodnoty
+  document.getElementById('edit-author').value = note.author || '';
+  document.getElementById('edit-text').value = note.text || '';
+  selectEditCat(note.cat || 0);
+  renderEditPhotoPreviews();
+
+  closeNoteDetail();
+  document.getElementById('note-edit-modal').classList.add('open');
+}
+
+function selectEditCat(idx) {
+  document.querySelectorAll('#edit-cats .note-cat').forEach(function(el){
+    el.classList.toggle('sel', parseInt(el.dataset.cat) === idx);
+  });
+  editNoteId && (function(){
+    var note = notesData.filter(function(n){ return n.id === editNoteId; })[0];
+    if(note) note._editCat = idx;
+  })();
+  // Uložíme vybranou kategorii do temp proměnné
+  window._editCat = idx;
+}
+
+function closeEditModal() {
+  document.getElementById('note-edit-modal').classList.remove('open');
+  editNoteId = null;
+  editNotePhotos = [];
+}
+
+function renderEditPhotoPreviews() {
+  var el = document.getElementById('edit-photos-preview');
+  el.innerHTML = '';
+  editNotePhotos.forEach(function(src, i) {
+    var div = document.createElement('div');
+    div.className = 'note-thumb';
+    var img = document.createElement('img');
+    img.src = src;
+    var btn = document.createElement('button');
+    btn.className = 'note-thumb-del';
+    btn.textContent = '✕';
+    (function(idx){ btn.onclick = function(){ editNotePhotos.splice(idx,1); renderEditPhotoPreviews(); }; })(i);
+    div.appendChild(img);
+    div.appendChild(btn);
+    el.appendChild(div);
+  });
+}
+
+function saveEditNote() {
+  var author = document.getElementById('edit-author').value.trim();
+  var text   = document.getElementById('edit-text').value.trim();
+  if(!author) { showToast('Zadejte jméno!', 2000); return; }
+
+  var note = notesData.filter(function(n){ return n.id === editNoteId; })[0];
+  if(!note) return;
+
+  note.author = author;
+  note.text   = text;
+  note.cat    = window._editCat !== undefined ? window._editCat : note.cat;
+  note.photos = editNotePhotos.slice();
+  note.edited = new Date().toLocaleString('cs-CZ');
+
+  closeEditModal();
+  renderNoteMarkers();
+  saveNotesToGh(function(){ openNoteDetail(note.id); });
+}
+
+// Přidat foto v editaci
+window.addEventListener('load', function() {
+  var editInput = document.getElementById('edit-photo-input');
+  if(editInput) {
+    editInput.addEventListener('change', function(e) {
+      Array.from(e.target.files).forEach(function(file) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          compressImage(ev.target.result, function(compressed) {
+            editNotePhotos.push(compressed);
+            renderEditPhotoPreviews();
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+      e.target.value = '';
+    });
+  }
+});
+
 </script>
 
 <!-- Nová poznámka -->
@@ -1232,7 +1343,8 @@ function toggleNotesLayer(en) {
     </div>
     <div id="note-detail-footer">
       <button class="note-close-btn" onclick="closeNoteDetail()">Zavřít</button>
-      <button class="note-del-btn" onclick="deleteCurrentNote()">🗑️ Smazat poznámku</button>
+      <button class="note-edit-btn" onclick="editCurrentNote()">✏️ Upravit</button>
+      <button class="note-del-btn" onclick="deleteCurrentNote()">🗑️ Smazat</button>
     </div>
   </div>
 </div>
@@ -1244,6 +1356,31 @@ function toggleNotesLayer(en) {
 
 <!-- Sync indikátor -->
 <div id="sync-indicator">⏳ Ukládám...</div>
+
+
+<!-- Editace poznámky -->
+<div id="note-edit-modal">
+  <div id="note-edit-box">
+    <h3>✏️ Upravit poznámku</h3>
+    <div class="note-cats" id="edit-cats">
+      <div class="note-cat nc-0" data-cat="0" onclick="selectEditCat(0)">📌 Obecná</div>
+      <div class="note-cat nc-1" data-cat="1" onclick="selectEditCat(1)">🏗️ Záporník</div>
+      <div class="note-cat nc-2" data-cat="2" onclick="selectEditCat(2)">🪨 Beton</div>
+      <div class="note-cat nc-3" data-cat="3" onclick="selectEditCat(3)">⚠️ Problém</div>
+      <div class="note-cat nc-4" data-cat="4" onclick="selectEditCat(4)">✅ Hotovo</div>
+      <div class="note-cat nc-5" data-cat="5" onclick="selectEditCat(5)">🔍 Kontrola</div>
+    </div>
+    <input id="edit-author" class="note-field" type="text" placeholder="Vaše jméno *" maxlength="40">
+    <textarea id="edit-text" class="note-field" placeholder="Text poznámky..."></textarea>
+    <div id="edit-photos-preview" class="note-photos-preview"></div>
+    <input type="file" id="edit-photo-input" accept="image/*" multiple style="display:none">
+    <div class="note-btns">
+      <button class="note-btn note-btn-cancel" onclick="closeEditModal()">Zrušit</button>
+      <button class="note-btn note-btn-addphoto" onclick="document.getElementById('edit-photo-input').click()">📷</button>
+      <button class="note-btn note-btn-save" onclick="saveEditNote()">Uložit</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
