@@ -584,15 +584,15 @@ textarea.note-field { min-height:80px; resize:vertical; }
     <label class="toggle"><input type="checkbox" id="lyr-etapy" checked onchange="toggleLayer('etapy',this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row" style="padding-left:12px;">
-    <label style="font-size:12px;">↳ Etapa 1 (07.04–21.04)</label>
+    <label style="font-size:12px;">↳ Etapa 1 (07.04–19.04)</label>
     <label class="toggle"><input type="checkbox" id="lyr-etapa1" checked onchange="toggleLayer('etapa1',this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row" style="padding-left:12px;">
-    <label style="font-size:12px;">↳ Etapa 2 (13.04–21.04)</label>
+    <label style="font-size:12px;">↳ Etapa 2 (14.04–19.04)</label>
     <label class="toggle"><input type="checkbox" id="lyr-etapa2" checked onchange="toggleLayer('etapa2',this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row" style="padding-left:12px;">
-    <label style="font-size:12px;">↳ Etapa 3 (21.04–14.05)</label>
+    <label style="font-size:12px;">↳ Etapa 3 (20.04–13.05)</label>
     <label class="toggle"><input type="checkbox" id="lyr-etapa3" checked onchange="toggleLayer('etapa3',this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row" style="padding-left:12px;">
@@ -1777,34 +1777,34 @@ var STAVEBNI_OBJEKTY = [
 var ETAPY = [
   {
     id: 1, barva: '#fed7aa', label: '1',
-    termin: '07.04.–21.04.',
+    termin: '07.04.–19.04.',
     useky: [
-      {kmOd:31.3, kmDo:32.0, strana:'vpravo', short:'07.04–13.04 // P.pruh // km 31,3–32,0'},
-      {kmOd:36.6, kmDo:37.4, strana:'vpravo', short:'07.04–13.04 // P.pruh // km 36,6–37,4'},
+      {kmOd:36.6, kmDo:37.4, strana:'vpravo', terminUsek:'07.04–13.04'},
+      {kmOd:31.3, kmDo:32.0, strana:'vpravo', terminUsek:'08.04–19.04'},
     ],
-    tooltip: '07.04.–13.04. // Pravý pruh',
+    tooltip: '07.04.–19.04.',
   },
   {
     id: 2, barva: '#fb923c', label: '2',
-    termin: '13.04.–21.04.',
+    termin: '14.04.–19.04.',
     useky: [
-      {kmOd:36.6, kmDo:37.4, strana:'obe', short:'13.04–21.04 // L+P.pruh // km 36,6–37,4'},
+      {kmOd:36.6, kmDo:37.4, strana:'vlevo', terminUsek:'14.04–19.04'},
     ],
-    tooltip: '13.04.–21.04. // Levý + pravý pruh',
+    tooltip: '14.04.–19.04. // Levý pruh',
   },
   {
     id: 3, barva: '#ea580c', label: '3',
-    termin: '21.04.–14.05.',
+    termin: '20.04.–13.05.',
     useky: [
-      {kmOd:32.0, kmDo:36.6, strana:'vpravo', short:'21.04–14.05 // Pravá ½ // km 32,0–36,6'},
+      {kmOd:32.0, kmDo:36.6, strana:'vpravo', terminUsek:'20.04–13.05'},
     ],
-    tooltip: '21.04.–14.05. // Pravá ½ vozovky',
+    tooltip: '20.04.–13.05. // Pravá ½ vozovky',
   },
   {
     id: 4, barva: '#9a3412', label: '4',
     termin: '14.05.–07.06.',
     useky: [
-      {kmOd:31.3, kmDo:36.6, strana:'vlevo', short:'14.05–07.06 // Levá ½ // km 31,3–36,6'},
+      {kmOd:31.3, kmDo:36.6, strana:'vlevo', terminUsek:'14.05–07.06'},
     ],
     tooltip: '14.05.–07.06. // Levá ½ vozovky',
   },
@@ -2049,7 +2049,7 @@ function buildEtapy() {
             html:'<div style="color:'+etapa.barva+';font-size:14px;font-weight:800;white-space:nowrap;'+
                  'text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;'+
                  'transform:rotate('+(rot+90).toFixed(0)+'deg);transform-origin:0 50%;">'+
-                 'E'+etapa.id+' // '+etapa.termin+'</div>',
+                 'E'+etapa.id+' // '+(u.terminUsek||etapa.termin)+'</div>',
             iconSize:[0,0], iconAnchor:[0,0],
           });
           L.marker([latL,lngL],{icon:lbl,interactive:false}).addTo(subGroup);
