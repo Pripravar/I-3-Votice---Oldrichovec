@@ -652,12 +652,9 @@ function addPRMarker(group, lat, lng, realKm, bear, pr) {
 
 function openPRPanel(realKm, pr) {
   showToast('PŘ km '+fmtKm(realKm)+' (řez č.'+pr.rezIdx+'/'+pr.total+')', 2000);
-
-  var src = pr.soubor;  // bez #page - otevřít celý soubor
-  currentPdfSrc = src;
+  currentPdfSrc = pr.soubor;
 
   var panel     = document.getElementById('pdf-panel');
-  var frame     = document.getElementById('pdf-frame');
   var frameWrap = document.getElementById('pdf-frame-wrap');
   var openWrap  = document.getElementById('pdf-open-btn-wrap');
   var nosit     = document.getElementById('pdf-nosit');
@@ -665,7 +662,6 @@ function openPRPanel(realKm, pr) {
   var ctr       = document.getElementById('pdf-counter');
 
   panel.classList.add('open');
-  disableMapForPdf(true);
   nosit.style.display = 'none';
   title.textContent = 'Pracovní řez — km ' + fmtKm(realKm) + ' (řez č.' + pr.rezIdx + '/' + pr.total + ')';
   ctr.textContent = '';
@@ -673,24 +669,11 @@ function openPRPanel(realKm, pr) {
   document.getElementById('pdf-tabs').innerHTML =
     '<span style="font-size:11px;color:var(--text2);padding:4px 8px;">✂️ Pracovní příčné řezy</span>';
 
-  if(isMobile()) {
-    if(frameWrap) frameWrap.style.display='none';
-    if(openWrap) {
-      openWrap.style.display='flex';
-      var label = document.getElementById('pdf-open-label');
-      if(label) label.textContent = 'Pracovní řez km ' + fmtKm(realKm) + ' (řez č.' + pr.rezIdx + '/' + pr.total + ')';
-    }
-    return;
-  }
-
-  if(frameWrap) frameWrap.style.display='flex';
-  if(openWrap)  openWrap.style.display='none';
-  if(frame.tagName === 'OBJECT') {
-    frame.data = src;
-    var fl = document.getElementById('pdf-fallback-link');
-    if(fl) fl.href = src;
-  } else {
-    frame.src = src;
+  if(frameWrap) frameWrap.style.display='none';
+  if(openWrap) {
+    openWrap.style.display='flex';
+    var label = document.getElementById('pdf-open-label');
+    if(label) label.textContent = 'Pracovní řez km ' + fmtKm(realKm) + ' (řez č.' + pr.rezIdx + '/' + pr.total + ')';
   }
 }
 
@@ -825,7 +808,7 @@ function openDocPanel(pages, realKm, startIdx) {
   docPageIdx = startIdx || 0;
   var panel  = document.getElementById('pdf-panel');
   panel.classList.add('open');
-  disableMapForPdf(true);
+  
   // Sestav záložky
   var tabs = document.getElementById('pdf-tabs');
   tabs.innerHTML = '';
@@ -850,14 +833,13 @@ function openPdfExternal() {
 }
 
 function renderDocPage(realKm) {
-  var frame    = document.getElementById('pdf-frame');
-  var frameWrap= document.getElementById('pdf-frame-wrap');
-  var openWrap = document.getElementById('pdf-open-btn-wrap');
-  var nosit    = document.getElementById('pdf-nosit');
-  var title    = document.getElementById('pdf-title');
-  var ctr      = document.getElementById('pdf-counter');
-  var btnP     = document.getElementById('btn-pdf-prev');
-  var btnN     = document.getElementById('btn-pdf-next');
+  var title  = document.getElementById('pdf-title');
+  var ctr    = document.getElementById('pdf-counter');
+  var btnP   = document.getElementById('btn-pdf-prev');
+  var btnN   = document.getElementById('btn-pdf-next');
+  var frameWrap = document.getElementById('pdf-frame-wrap');
+  var openWrap  = document.getElementById('pdf-open-btn-wrap');
+  var nosit  = document.getElementById('pdf-nosit');
 
   // Aktualizuj záložky
   document.querySelectorAll('.pdf-tab').forEach(function(b,i){
@@ -865,7 +847,6 @@ function renderDocPage(realKm) {
   });
 
   if(docPages.length===0){
-    frame.src='';
     if(frameWrap) frameWrap.style.display='none';
     if(openWrap)  openWrap.style.display='none';
     nosit.style.display='flex';
@@ -882,22 +863,12 @@ function renderDocPage(realKm) {
   nosit.style.display = 'none';
   currentPdfSrc = p.soubor;
 
-  if(isMobile()) {
-    // Na mobilu: zobraz tlačítko pro otevření v nativním prohlížeči
-    frame.src = '';
-    if(frameWrap) frameWrap.style.display='none';
-    if(openWrap) {
-      openWrap.style.display='flex';
-      var label = document.getElementById('pdf-open-label');
-      if(label) label.textContent = p.nazev || '';
-    }
-  } else {
-    // Na desktopu: zobraz iframe
-    if(frameWrap) frameWrap.style.display='flex';
-    if(openWrap)  openWrap.style.display='none';
-    frame.data = p.soubor;
-    var fl = document.getElementById('pdf-fallback-link');
-    if(fl) fl.href = p.soubor;
+  // Vždy zobraz tlačítko - PDF se otevírá v novém okně
+  if(frameWrap) frameWrap.style.display='none';
+  if(openWrap) {
+    openWrap.style.display='flex';
+    var label = document.getElementById('pdf-open-label');
+    if(label) label.textContent = p.nazev || p.typ || '';
   }
 }
 
@@ -915,8 +886,10 @@ function docGoTo(idx) {
 
 function closePdf() {
   document.getElementById('pdf-panel').classList.remove('open','fullscreen');
-  var pf=document.getElementById('pdf-frame'); if(pf.tagName==='OBJECT') pf.data=''; else pf.src='';
+  var pf=document.getElementById('pdf-frame');
+  if(pf) { if(pf.tagName==='OBJECT') pf.data=''; else pf.src=''; }
   docPages=[]; docPageIdx=0;
+  currentPdfSrc='';
   disableMapForPdf(false);
 }
 function togglePdfFs() {document.getElementById('pdf-panel').classList.toggle('fullscreen');}
@@ -1036,21 +1009,47 @@ function ghHeaders() {
 
 function loadNotes() {
   showSync('⏳ Načítám poznámky...');
-  fetch(GH_API + '?t=' + Date.now(), {headers: ghHeaders()})
-    .then(function(r){ return r.json(); })
+  fetch(GH_API + '?t=' + Date.now(), {
+    headers: ghHeaders(),
+    cache: 'no-store'
+  })
+    .then(function(r){
+      if(r.status === 404) {
+        // Soubor ještě neexistuje - vytvoříme ho
+        console.log('Soubor poznámek neexistuje, vytvářím...');
+        notesData = [];
+        hideSync();
+        renderNoteMarkers();
+        saveNotesToGh(null);
+        return null;
+      }
+      return r.json();
+    })
     .then(function(data) {
+      if(!data) return;
       if(data.sha) {
         notesGhSha = data.sha;
-        var decoded = atob(data.content.replace(/\n/g,''));
-        var parsed = JSON.parse(decodeURIComponent(escape(decoded)));
-        notesData = parsed.notes || [];
+        try {
+          var decoded = atob(data.content.replace(/[\n\r]/g,''));
+          var parsed = JSON.parse(decodeURIComponent(escape(decoded)));
+          notesData = parsed.notes || [];
+          console.log('Načteno poznámek:', notesData.length);
+        } catch(e) {
+          console.error('Chyba parsování:', e);
+          notesData = [];
+        }
       } else {
+        console.warn('GitHub API odpověď bez SHA:', data);
         notesData = [];
       }
       hideSync();
       renderNoteMarkers();
     })
-    .catch(function(){ hideSync(); showToast('Poznámky offline',2000); });
+    .catch(function(e){
+      console.error('Chyba načítání poznámek:', e);
+      hideSync();
+      showToast('⚠️ Poznámky se nepodařilo načíst',3000);
+    });
 }
 
 function saveNotesToGh(callback) {
@@ -1059,19 +1058,38 @@ function saveNotesToGh(callback) {
   var encoded = btoa(unescape(encodeURIComponent(payload)));
   var body = {message: 'Aktualizace poznámek', content: encoded};
   if(notesGhSha) body.sha = notesGhSha;
+  console.log('Ukládám poznámky, SHA:', notesGhSha, 'počet:', notesData.length);
   fetch(GH_API, {
     method: 'PUT',
     headers: ghHeaders(),
     body: JSON.stringify(body)
   })
-  .then(function(r){ return r.json(); })
-  .then(function(data){
-    if(data.content && data.content.sha) notesGhSha = data.content.sha;
-    hideSync();
-    showToast('✅ Uloženo',1500);
-    if(callback) callback();
+  .then(function(r){
+    console.log('Save response status:', r.status);
+    return r.json();
   })
-  .catch(function(){ hideSync(); showToast('❌ Chyba uložení',2500); });
+  .then(function(data){
+    console.log('Save response:', data);
+    if(data.content && data.content.sha) {
+      notesGhSha = data.content.sha;
+      hideSync();
+      showToast('✅ Uloženo',1500);
+      if(callback) callback();
+    } else if(data.message) {
+      // GitHub vrátil chybu
+      hideSync();
+      console.error('GitHub chyba:', data.message);
+      showToast('❌ ' + data.message, 3000);
+    } else {
+      hideSync();
+      if(callback) callback();
+    }
+  })
+  .catch(function(e){
+    console.error('Chyba uložení:', e);
+    hideSync();
+    showToast('❌ Chyba uložení - zkontrolujte připojení',3000);
+  });
 }
 
 // ── Markery ────────────────────────────────────────────
