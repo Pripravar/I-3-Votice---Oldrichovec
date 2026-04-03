@@ -1030,12 +1030,15 @@ function renderDocPage(realKm) {
   nosit.style.display = 'none';
   currentPdfSrc = p.soubor;
 
-  // Vždy zobraz tlačítko - PDF se otevírá v novém okně
-  if(frameWrap) frameWrap.style.display='none';
-  if(openWrap) {
-    openWrap.style.display='flex';
-    var label = document.getElementById('pdf-open-label');
-    if(label) label.textContent = p.nazev || p.typ || '';
+  // Zobraz PDF v iframe
+  if(openWrap) openWrap.style.display='none';
+  if(frameWrap) frameWrap.style.display='flex';
+  var frame = document.getElementById('pdf-frame');
+  if(frame) {
+    if(frame.tagName === 'OBJECT') { frame.data = p.soubor; }
+    else { frame.src = p.soubor; }
+    var fl = document.getElementById('pdf-fallback-link');
+    if(fl) fl.href = p.soubor;
   }
 }
 
@@ -1054,10 +1057,9 @@ function docGoTo(idx) {
 function closePdf() {
   document.getElementById('pdf-panel').classList.remove('open','fullscreen');
   var pf=document.getElementById('pdf-frame');
-  if(pf) { if(pf.tagName==='OBJECT') pf.data=''; else pf.src=''; }
+  if(pf) { if(pf.tagName==='OBJECT') pf.data='about:blank'; else pf.src='about:blank'; }
   docPages=[]; docPageIdx=0;
   currentPdfSrc='';
-  disableMapForPdf(false);
 }
 function togglePdfFs() {document.getElementById('pdf-panel').classList.toggle('fullscreen');}
 
@@ -1269,12 +1271,11 @@ function selectNoteMarker(marker, noteId) {
   var latlng = marker.getLatLng();
   var arrowIcon = L.divIcon({
     className: '',
-    html: '<div style="position:relative;width:28px;height:44px;">' +
-          '<div style="position:absolute;left:50%;transform:translateX(-50%) translateY(-44px);animation:pulse-arrow 1s infinite;">' +
-          '<div style="width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:22px solid #f5a623;filter:drop-shadow(0 0 4px #e94560);"></div>' +
-          '</div></div>',
-    iconSize: [28, 1],
-    iconAnchor: [14, 1],
+    html: '<div style="animation:pulse-arrow 1s infinite;display:inline-block;">' +
+          '<div style="width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:24px solid #f5a623;filter:drop-shadow(0 0 4px #e94560);"></div>' +
+          '</div>',
+    iconSize: [28, 24],
+    iconAnchor: [14, -10],
   });
   selectedNoteArrow = L.marker(latlng, {icon:arrowIcon, zIndexOffset:600, interactive:false});
   selectedNoteArrow.addTo(notesLayer);
@@ -1685,7 +1686,11 @@ function closePropPanel() {
   currentPropId = null;
 }
 
-// ── Poznámky propustku (Firebase) ──
+// ── Poznámky propustku (Firebase) s foto a editací ──
+var propNotePhotos = [];
+var propEditPhotos = [];
+var propEditKey = null;
+
 function loadPropNotes(propId) {
   var list = document.getElementById('prop-notes-list');
   list.innerHTML = '<div style="color:var(--text2);font-size:11px;padding:4px;">Načítám...</div>';
@@ -1700,22 +1705,50 @@ function loadPropNotes(propId) {
       var n = val[key];
       var div = document.createElement('div');
       div.className = 'prop-note-item';
-      // Meta řádek
+
+      // Meta
       var meta = document.createElement('div');
       meta.className = 'prop-note-meta';
       meta.textContent = '👤 ' + n.author + ' · ' + n.time;
-      // Smazat tlačítko
+
+      // Tlačítka editace a smazání
+      var btnWrap = document.createElement('span');
+      btnWrap.style.cssText = 'float:right;display:flex;gap:4px;';
+      var editBtn = document.createElement('button');
+      editBtn.className = 'prop-note-del';
+      editBtn.textContent = '✏️';
+      editBtn.title = 'Editovat';
+      (function(pid, k, note){ editBtn.onclick = function(){ openPropEdit(pid, k, note); }; })(propId, key, n);
       var delBtn = document.createElement('button');
       delBtn.className = 'prop-note-del';
       delBtn.textContent = '✕';
       (function(pid, k){ delBtn.onclick = function(){ deletePropNote(pid, k); }; })(propId, key);
-      meta.appendChild(delBtn);
+      btnWrap.appendChild(editBtn);
+      btnWrap.appendChild(delBtn);
+      meta.appendChild(btnWrap);
+
       // Text
       var txt = document.createElement('div');
       txt.className = 'prop-note-text';
       txt.textContent = n.text;
+
       div.appendChild(meta);
       div.appendChild(txt);
+
+      // Fotky
+      if(n.photos && n.photos.length) {
+        var photoRow = document.createElement('div');
+        photoRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;';
+        n.photos.forEach(function(src, pi) {
+          var img = document.createElement('img');
+          img.src = src;
+          img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:4px;cursor:pointer;';
+          img.onclick = function(){ window.open(src,'_blank'); };
+          photoRow.appendChild(img);
+        });
+        div.appendChild(photoRow);
+      }
+
       list.appendChild(div);
     });
   });
@@ -1727,7 +1760,25 @@ function togglePropNoteForm() {
   if(form.classList.contains('open')) {
     document.getElementById('prop-note-author').value = localStorage.getItem('noteAuthor') || '';
     document.getElementById('prop-note-text').value = '';
+    propNotePhotos = [];
+    document.getElementById('prop-photo-preview').innerHTML = '';
   }
+}
+
+function addPropPhotos(input) {
+  var files = Array.from(input.files);
+  var preview = document.getElementById('prop-photo-preview');
+  files.forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      propNotePhotos.push(e.target.result);
+      var img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.cssText = 'width:54px;height:54px;object-fit:cover;border-radius:4px;';
+      preview.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function savePropNote() {
@@ -1737,16 +1788,15 @@ function savePropNote() {
   if(!author) { showToast('Zadejte jméno!', 2000); return; }
   if(!text)   { showToast('Zadejte text poznámky!', 2000); return; }
   localStorage.setItem('noteAuthor', author);
-
   var note = {
-    author: author,
-    text: text,
+    author: author, text: text,
     time: new Date().toLocaleString('cs-CZ'),
+    photos: propNotePhotos.slice(),
   };
   var key = Date.now().toString();
   db.ref('propustky/' + currentPropId + '/poznamky/' + key).set(note)
     .then(function() {
-      showToast('✅ Poznámka uložena', 1500);
+      showToast('✅ Uloženo', 1500);
       togglePropNoteForm();
       loadPropNotes(currentPropId);
     })
@@ -1760,6 +1810,67 @@ function deletePropNote(propId, key) {
       showToast('🗑️ Smazáno', 1500);
       loadPropNotes(propId);
     });
+}
+
+function openPropEdit(propId, key, note) {
+  propEditKey = key;
+  propEditPhotos = (note.photos || []).slice();
+  document.getElementById('prop-edit-author').value = note.author || '';
+  document.getElementById('prop-edit-text').value = note.text || '';
+  // Zobraz stávající fotky
+  var prev = document.getElementById('prop-edit-photo-preview');
+  prev.innerHTML = '';
+  propEditPhotos.forEach(function(src, i) {
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;display:inline-block;';
+    var img = document.createElement('img');
+    img.src = src;
+    img.style.cssText = 'width:54px;height:54px;object-fit:cover;border-radius:4px;';
+    var del = document.createElement('button');
+    del.textContent = '✕';
+    del.style.cssText = 'position:absolute;top:-4px;right:-4px;background:#e94560;color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:9px;cursor:pointer;padding:0;';
+    (function(idx){ del.onclick = function(){ propEditPhotos.splice(idx,1); openPropEdit(propId, key, {author:document.getElementById('prop-edit-author').value, text:document.getElementById('prop-edit-text').value, photos:propEditPhotos}); }; })(i);
+    wrap.appendChild(img); wrap.appendChild(del);
+    prev.appendChild(wrap);
+  });
+  document.getElementById('prop-edit-modal').style.display = 'flex';
+}
+
+function addPropEditPhotos(input) {
+  var files = Array.from(input.files);
+  var prev = document.getElementById('prop-edit-photo-preview');
+  files.forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      propEditPhotos.push(e.target.result);
+      var img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.cssText = 'width:54px;height:54px;object-fit:cover;border-radius:4px;';
+      prev.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function savePropEdit() {
+  if(!currentPropId || !propEditKey) return;
+  var author = document.getElementById('prop-edit-author').value.trim();
+  var text   = document.getElementById('prop-edit-text').value.trim();
+  if(!author || !text) { showToast('Vyplňte jméno a text', 2000); return; }
+  db.ref('propustky/' + currentPropId + '/poznamky/' + propEditKey).update({
+    author: author, text: text,
+    photos: propEditPhotos,
+    edited: new Date().toLocaleString('cs-CZ'),
+  }).then(function() {
+    showToast('✅ Uloženo', 1500);
+    closePropEdit();
+    loadPropNotes(currentPropId);
+  }).catch(function() { showToast('❌ Chyba uložení', 2000); });
+}
+
+function closePropEdit() {
+  document.getElementById('prop-edit-modal').style.display = 'none';
+  propEditKey = null;
 }
 
 </script>
@@ -1871,9 +1982,29 @@ function deletePropNote(propId, key) {
   <div id="prop-note-form">
     <input id="prop-note-author" class="note-field" type="text" placeholder="Vaše jméno *" maxlength="40" style="margin-bottom:0;">
     <textarea id="prop-note-text" class="note-field" placeholder="Poznámka k propustku..." style="min-height:50px;margin-bottom:0;resize:none;"></textarea>
-    <div style="display:flex;gap:6px;">
+    <div id="prop-photo-preview" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <label style="cursor:pointer;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;">
+        📷 Foto<input type="file" id="prop-photo-input" accept="image/*" capture="environment" style="display:none;" multiple onchange="addPropPhotos(this)">
+      </label>
       <button onclick="savePropNote()" style="flex:1;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:8px;font-size:13px;cursor:pointer;">Uložit</button>
       <button onclick="togglePropNoteForm()" style="flex:1;background:var(--panel2);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:13px;cursor:pointer;">Zrušit</button>
+    </div>
+  </div>
+  <!-- Edit modal propustek -->
+  <div id="prop-edit-modal" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
+    <div style="background:var(--panel);border-radius:14px;padding:18px;width:min(94vw,420px);max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+      <div style="font-weight:700;font-size:15px;color:var(--accent2);">✏️ Editace poznámky</div>
+      <input id="prop-edit-author" class="note-field" type="text" placeholder="Jméno *" maxlength="40">
+      <textarea id="prop-edit-text" class="note-field" placeholder="Text..." style="min-height:70px;resize:none;"></textarea>
+      <div id="prop-edit-photo-preview" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      <label style="cursor:pointer;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;text-align:center;">
+        📷 Přidat foto<input type="file" id="prop-edit-photo-input" accept="image/*" capture="environment" style="display:none;" multiple onchange="addPropEditPhotos(this)">
+      </label>
+      <div style="display:flex;gap:8px;">
+        <button onclick="savePropEdit()" style="flex:1;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;cursor:pointer;">💾 Uložit</button>
+        <button onclick="closePropEdit()" style="flex:1;background:var(--panel2);color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:14px;cursor:pointer;">Zrušit</button>
+      </div>
     </div>
   </div>
 </div>
