@@ -315,10 +315,11 @@ textarea.note-field { min-height:80px; resize:vertical; }
   50%      { transform: translateX(-50%) translateY(-4px); opacity:0.8; }
 }
 .note-marker-pin.selected {
-  animation: pulse-marker 1.2s infinite;
+  animation: pulse-marker 1.2s infinite !important;
   border-color: #fff !important;
   border-width: 3px !important;
   z-index: 1000;
+  transform: rotate(-45deg) scale(1.15) !important;
 }
 .note-arrow-wrap {
   position: absolute;
@@ -346,6 +347,90 @@ textarea.note-field { min-height:80px; resize:vertical; }
   border-right: 16px solid transparent;
   border-top: 25px solid #e94560;
 }
+
+
+/* ── Propustky ── */
+.prop-marker {
+  background: transparent !important;
+  border: none !important;
+  overflow: visible !important;
+}
+.prop-pin {
+  width: 28px; height: 28px;
+  background: #1565c0;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 9px; font-weight: 800;
+  box-shadow: 0 2px 6px rgba(0,0,0,.5);
+  cursor: pointer;
+  transition: transform .15s;
+  white-space: nowrap;
+}
+.prop-pin:hover { transform: scale(1.2); }
+
+/* Propustek detail panel */
+#prop-panel {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 60vh;
+  background: var(--panel);
+  border-top: 2px solid #1565c0;
+  z-index: 2600;
+  display: none;
+  flex-direction: column;
+}
+#prop-panel.open { display: flex; }
+#prop-panel.fullscreen { height: 100vh; top: 0; }
+#prop-header {
+  display: flex; align-items: center;
+  padding: 8px 10px; background: var(--panel2);
+  gap: 6px; flex-shrink: 0;
+}
+#prop-title { flex:1; font-size:13px; font-weight:700; color:#4fc3f7; }
+#btn-prop-fs, #btn-prop-close {
+  background:none; border:none; color:var(--text2); font-size:18px; cursor:pointer; padding:4px 6px;
+}
+#prop-tabs { display:flex; gap:4px; padding:6px 10px; background:var(--bg); flex-shrink:0; overflow-x:auto; }
+#prop-content { flex:1; display:flex; flex-direction:column; min-height:0; }
+
+/* Propustek poznámky sekce */
+#prop-notes-section {
+  flex-shrink: 0;
+  background: var(--panel2);
+  border-top: 1px solid var(--border);
+  max-height: 35%;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+#prop-notes-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+#prop-notes-header span { font-size: 12px; font-weight: 700; color: var(--accent2); }
+#btn-prop-add-note {
+  background: var(--accent); color: #fff; border: none;
+  border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer;
+}
+.prop-note-item {
+  background: var(--panel); border-radius: 6px; padding: 6px 8px;
+  margin-bottom: 6px; font-size: 12px;
+}
+.prop-note-meta { color: var(--text2); font-size: 10px; margin-bottom: 2px; }
+.prop-note-text { color: var(--text); line-height: 1.4; }
+.prop-note-del { float: right; background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; }
+
+/* Propustek nová poznámka form */
+#prop-note-form {
+  display: none;
+  padding: 8px 12px;
+  background: var(--panel2);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 6px;
+  flex-direction: column;
+}
+#prop-note-form.open { display: flex; }
 
 </style>
 </head>
@@ -385,6 +470,10 @@ textarea.note-field { min-height:80px; resize:vertical; }
     <label class="toggle"><input type="checkbox" id="lyr-notes" checked onchange="toggleNotesLayer(this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row">
+    <label>🔵 Propustky (SO 102)</label>
+    <label class="toggle"><input type="checkbox" id="lyr-prop" checked onchange="toggleLayer('propustky',this.checked)"><span class="toggle-slider"></span></label>
+  </div>
+  <div class="layer-row">
     <label>✂️ Příčné řezy (PŘ)</label>
     <label class="toggle"><input type="checkbox" id="lyr-pr" checked onchange="toggleLayer('pr',this.checked)"><span class="toggle-slider"></span></label>
   </div>
@@ -414,6 +503,14 @@ textarea.note-field { min-height:80px; resize:vertical; }
         PDF nelze zobrazit — <a id="pdf-fallback-link" href="" target="_blank" style="color:#4fc3f7;">Otevřít PDF ↗</a>
       </p>
     </object>
+  </div>
+  <div id="pdf-open-btn-wrap" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:20px;">
+    <div style="font-size:48px;">📄</div>
+    <div id="pdf-open-label" style="font-size:14px;color:var(--text2);text-align:center;"></div>
+    <button id="pdf-open-btn" onclick="openPdfExternal()" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer;">
+      📂 Otevřít PDF ↗
+    </button>
+    <div style="font-size:11px;color:var(--text2);text-align:center;">Otevře se v novém záložce — scroll i zoom funguje</div>
   </div>
   <div id="pdf-nosit"><span>📄</span><div>Pro toto staničení nejsou výkresy k dispozici</div></div>
 </div>
@@ -487,6 +584,27 @@ var DOCS_VPR = [
   {kmOd:34.615, kmDo:37.356, soubor:'101_2_3_04_2_Vzorove_pricne_rezy_SO_101_3.pdf',  nazev:'Vzorové příčné řezy SO 101.3'},
 ];
 
+var PROPUSTKY = [
+  {id:'P1',  km:33.342, soubor:'102_02_01_Propustek_km_33_342_P1.pdf',  nazev:'Propustek P1 — km 33,342'},
+  {id:'P2',  km:33.377, soubor:'102_02_02_Propustek_km_33_377_P2.pdf',  nazev:'Propustek P2 — km 33,377'},
+  {id:'P3',  km:33.838, soubor:'102_02_03_Propustek_km_33_838_P3.pdf',  nazev:'Propustek P3 — km 33,838'},
+  {id:'P4',  km:34.229, soubor:'102_02_04_Propustek_km_34_229_P4.pdf',  nazev:'Propustek P4 — km 34,229'},
+  {id:'P7',  km:35.389, soubor:'102_02_05_Propustek_km_35_389_P7.pdf',  nazev:'Propustek P7 — km 35,389'},
+  {id:'P8',  km:35.592, soubor:'102_02_06_Propustek_km_35_592_P8.pdf',  nazev:'Propustek P8 — km 35,592'},
+  {id:'P13', km:36.589, soubor:'102_02_07_Propustek_km_36_589_P13.pdf', nazev:'Propustek P13 — km 36,589'},
+  {id:'P14', km:35.123, soubor:'102_02_08_Propustek_km_35_123_P14.pdf', nazev:'Propustek P14 — km 35,123'},
+  {id:'P15', km:36.183, soubor:'102_02_09_Propustek_km_36_183_P15.pdf', nazev:'Propustek P15 — km 36,183'},
+];
+var PROPUSTEK_TZ = '102_01_Technicka_zprava_proputsky.pdf';
+
+var DOCS_DZ = [
+  {kmOd:31.450, kmDo:32.765, soubor:'situace_DZ_31_450_až_32_765.pdf', nazev:'Situace DZ č.1 — km 31,450–32,765'},
+  {kmOd:32.766, kmDo:34.160, soubor:'situace_DZ_32_766_až_34_16.pdf',  nazev:'Situace DZ č.2 — km 32,766–34,160'},
+  {kmOd:34.161, kmDo:35.100, soubor:'situace_DZ_34_161_až_35_100.pdf', nazev:'Situace DZ č.3 — km 34,161–35,100'},
+  {kmOd:35.101, kmDo:35.940, soubor:'situace_DZ_35_101_až_35_940.pdf', nazev:'Situace DZ č.4 — km 35,101–35,940'},
+  {kmOd:35.941, kmDo:37.356, soubor:'situace_DZ_35_941_až_37_35.pdf',  nazev:'Situace DZ č.5 — km 35,941–37,356'},
+];
+
 // Pracovní příčné řezy – každý záznam: {km, soubor, rezIdx}
 // rezIdx = 1-based pořadí řezu v souboru (pro scroll v PDF)
 var DOCS_PR = (function() {
@@ -535,7 +653,7 @@ var gpsActive = false;
 var gpsCentering = false;
 var gpxCumulative = [];
 var calibSorted = null;
-var layerGroups = {trasa:null, st100:null, st20:null, pr:null};
+var layerGroups = {trasa:null, st100:null, st20:null, pr:null, propustky:null};
 
 // ── MATH ──────────────────────────────
 function haversine(lat1,lon1,lat2,lon2) {
@@ -846,6 +964,9 @@ function onStaniceniClick(realKm) {
   DOCS_VPR.forEach(function(vpr, i) {
     pages.push({soubor:vpr.soubor, nazev:vpr.nazev, typ:'✂️ VŘ '+(i+1)+'/3'});
   });
+  // Přidat situaci dopravního značení
+  var dz = findDocForKm(DOCS_DZ, realKm);
+  if(dz) pages.push({soubor:dz.soubor, nazev:dz.nazev, typ:'🚦 Sit. DZ'});
   openDocPanel(pages, realKm, 0);
 }
 
@@ -1006,6 +1127,7 @@ function init() {
   buildStaniceni100();
   buildStaniceni20();
   buildPR();
+  buildPropustky();
   map.fitBounds(L.latLngBounds(GPX_POINTS.map(function(p){return[p[0],p[1]];})),{padding:[40,40]});
   startGPS();
   loadNotes();
@@ -1019,12 +1141,12 @@ window.addEventListener('load',init);
 //  POZNÁMKY – Firebase Realtime Database
 // ═══════════════════════════════════════════════════════
 var NOTE_CATS = [
-  {label:'📌 Obecná',   cls:'nc-0', pin:'nm-0'},
-  {label:'🏗️ Záporník', cls:'nc-1', pin:'nm-1'},
-  {label:'🪨 Beton',    cls:'nc-2', pin:'nm-2'},
-  {label:'⚠️ Problém',  cls:'nc-3', pin:'nm-3'},
-  {label:'✅ Hotovo',   cls:'nc-4', pin:'nm-4'},
-  {label:'🔍 Kontrola', cls:'nc-5', pin:'nm-5'},
+  {label:'📌 Obecná',    cls:'nc-0', pin:'nm-0'},
+  {label:'ℹ️ Informace', cls:'nc-1', pin:'nm-1'},
+  {label:'⚠️ Problém',  cls:'nc-2', pin:'nm-2'},
+  {label:'✅ Hotovo',   cls:'nc-3', pin:'nm-3'},
+  {label:'🔍 Kontrola', cls:'nc-4', pin:'nm-4'},
+  {label:'📋 Kategorie 6', cls:'nc-5', pin:'nm-5'},
 ];
 
 var notesData      = [];
@@ -1127,29 +1249,34 @@ function renderNoteMarkers() {
 function selectNoteMarker(marker, noteId) {
   // Zrušit předchozí výběr
   if(selectedNoteMarker) {
-    var oldPin = selectedNoteMarker.getElement().querySelector('.note-marker-pin');
-    if(oldPin) oldPin.classList.remove('selected');
+    var el = selectedNoteMarker.getElement();
+    if(el) { var op = el.querySelector('.note-marker-pin'); if(op) op.classList.remove('selected'); }
   }
-  if(selectedNoteArrow) {
-    map.removeLayer(selectedNoteArrow);
-    selectedNoteArrow = null;
-  }
+  if(selectedNoteArrow) { map.removeLayer(selectedNoteArrow); selectedNoteArrow = null; }
 
   selectedNoteMarker = marker;
 
-  // Přidat třídu selected na pin
-  var pin = marker.getElement() && marker.getElement().querySelector('.note-marker-pin');
-  if(pin) pin.classList.add('selected');
+  // Přidat třídu selected - s malým zpožděním aby byl element v DOM
+  setTimeout(function() {
+    var el = marker.getElement();
+    if(el) {
+      var pin = el.querySelector('.note-marker-pin');
+      if(pin) pin.classList.add('selected');
+    }
+  }, 50);
 
-  // Přidat šipku nad marker
+  // Šipka nad markerem
   var latlng = marker.getLatLng();
   var arrowIcon = L.divIcon({
     className: '',
-    html: '<div class="note-arrow-wrap"><div class="note-arrow"></div></div>',
-    iconSize: [28, 44],
-    iconAnchor: [14, 44],
+    html: '<div style="position:relative;width:28px;height:44px;">' +
+          '<div style="position:absolute;left:50%;transform:translateX(-50%) translateY(-44px);animation:pulse-arrow 1s infinite;">' +
+          '<div style="width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:22px solid #f5a623;filter:drop-shadow(0 0 4px #e94560);"></div>' +
+          '</div></div>',
+    iconSize: [28, 1],
+    iconAnchor: [14, 1],
   });
-  selectedNoteArrow = L.marker(latlng, {icon: arrowIcon, zIndexOffset:600, interactive:false});
+  selectedNoteArrow = L.marker(latlng, {icon:arrowIcon, zIndexOffset:600, interactive:false});
   selectedNoteArrow.addTo(notesLayer);
 }
 
@@ -1473,6 +1600,155 @@ function disableMapForPdf(disable) {
     map.doubleClickZoom.enable();
   }
 }
+
+// ═══════════════════════════════════
+//  PROPUSTKY
+// ═══════════════════════════════════
+var propLayer = null;
+var currentPropId = null;
+var currentPropSrc = '';
+var propPages = [];
+var propPageIdx = 0;
+
+function buildPropustky() {
+  propLayer = L.layerGroup().addTo(map);
+  layerGroups.propustky = propLayer;
+
+  PROPUSTKY.forEach(function(p) {
+    var pos = realKmToLatLng(p.km);
+    if(!pos) return;
+    var gpxM = interp(calibSorted,'realKm','gpxM', p.km);
+    var bear = bearingAtGpxM(gpxM);
+
+    // Marker na PRAVÉ straně osy (stejně jako PŘ), ale níže (offset větší)
+    // Aby se nekryly s PŘ markery použijeme offset doleva (opačná strana)
+    var perpRad = (bear - 90) * Math.PI / 180; // vlevo od osy
+    var offset = 48;
+    var dx = Math.sin(perpRad) * offset;
+    var dy = -Math.cos(perpRad) * offset;
+    var DW = 60, DH = 34;
+    var ancX = Math.round(DW + dx);
+    var ancY = Math.round(DH/2 + dy);
+
+    var html = '<div style="width:'+DW+'px;height:'+DH+'px;display:flex;align-items:center;justify-content:flex-end;pointer-events:all;cursor:pointer;">'+
+      '<div class="prop-pin">'+p.id+'</div></div>';
+    var icon = L.divIcon({className:'prop-marker', html:html, iconSize:[DW,DH], iconAnchor:[ancX,ancY]});
+    var m = L.marker(pos, {icon:icon, interactive:true, zIndexOffset:200});
+    (function(prop){ m.on('click', function(e){ L.DomEvent.stopPropagation(e); openPropPanel(prop); }); })(p);
+    m.addTo(propLayer);
+  });
+}
+
+function openPropPanel(prop) {
+  currentPropId = prop.id;
+  currentPropSrc = prop.soubor;
+  propPages = [
+    {soubor: prop.soubor, nazev: prop.nazev, typ: '📐 Výkres'},
+    {soubor: PROPUSTEK_TZ, nazev: 'TZ SO 102 — Oprava propustků', typ: '📋 Tech. zpráva'},
+  ];
+  propPageIdx = 0;
+
+  var panel = document.getElementById('prop-panel');
+  var title = document.getElementById('prop-title');
+  panel.classList.add('open');
+  title.textContent = prop.nazev;
+
+  // Záložky
+  var tabs = document.getElementById('prop-tabs');
+  tabs.innerHTML = '';
+  propPages.forEach(function(p, i) {
+    var btn = document.createElement('button');
+    btn.className = 'pdf-tab' + (i===0?' active':'');
+    btn.textContent = p.typ;
+    btn.onclick = (function(idx){ return function(){
+      propPageIdx = idx;
+      currentPropSrc = propPages[idx].soubor;
+      document.getElementById('prop-open-label').textContent = propPages[idx].nazev;
+      document.querySelectorAll('#prop-tabs .pdf-tab').forEach(function(b,j){ b.classList.toggle('active',j===idx); });
+    };})(i);
+    tabs.appendChild(btn);
+  });
+
+  document.getElementById('prop-open-label').textContent = prop.nazev;
+
+  // Načíst poznámky propustku
+  loadPropNotes(prop.id);
+}
+
+function openPropPdfExternal() {
+  if(currentPropSrc) window.open(currentPropSrc, '_blank');
+}
+
+function closePropPanel() {
+  document.getElementById('prop-panel').classList.remove('open','fullscreen');
+  document.getElementById('prop-note-form').classList.remove('open');
+  currentPropId = null;
+}
+
+// ── Poznámky propustku (Firebase) ──
+function loadPropNotes(propId) {
+  var list = document.getElementById('prop-notes-list');
+  list.innerHTML = '<div style="color:var(--text2);font-size:11px;padding:4px;">Načítám...</div>';
+  db.ref('propustky/' + propId + '/poznamky').once('value', function(snap) {
+    list.innerHTML = '';
+    var val = snap.val();
+    if(!val) {
+      list.innerHTML = '<div style="color:var(--text2);font-size:11px;padding:4px;">Zatím žádné poznámky</div>';
+      return;
+    }
+    Object.keys(val).forEach(function(key) {
+      var n = val[key];
+      var div = document.createElement('div');
+      div.className = 'prop-note-item';
+      div.innerHTML = '<div class="prop-note-meta">👤 '+n.author+' · '+n.time+
+        '<button class="prop-note-del" onclick="deletePropNote(''+propId+'',''+key+'')">✕</button></div>'+
+        '<div class="prop-note-text">'+n.text+'</div>';
+      list.appendChild(div);
+    });
+  });
+}
+
+function togglePropNoteForm() {
+  var form = document.getElementById('prop-note-form');
+  form.classList.toggle('open');
+  if(form.classList.contains('open')) {
+    document.getElementById('prop-note-author').value = localStorage.getItem('noteAuthor') || '';
+    document.getElementById('prop-note-text').value = '';
+  }
+}
+
+function savePropNote() {
+  if(!currentPropId) return;
+  var author = document.getElementById('prop-note-author').value.trim();
+  var text   = document.getElementById('prop-note-text').value.trim();
+  if(!author) { showToast('Zadejte jméno!', 2000); return; }
+  if(!text)   { showToast('Zadejte text poznámky!', 2000); return; }
+  localStorage.setItem('noteAuthor', author);
+
+  var note = {
+    author: author,
+    text: text,
+    time: new Date().toLocaleString('cs-CZ'),
+  };
+  var key = Date.now().toString();
+  db.ref('propustky/' + currentPropId + '/poznamky/' + key).set(note)
+    .then(function() {
+      showToast('✅ Poznámka uložena', 1500);
+      togglePropNoteForm();
+      loadPropNotes(currentPropId);
+    })
+    .catch(function() { showToast('❌ Chyba uložení', 2000); });
+}
+
+function deletePropNote(propId, key) {
+  if(!confirm('Smazat tuto poznámku?')) return;
+  db.ref('propustky/' + propId + '/poznamky/' + key).remove()
+    .then(function() {
+      showToast('🗑️ Smazáno', 1500);
+      loadPropNotes(propId);
+    });
+}
+
 </script>
 
 <!-- Nová poznámka -->
@@ -1481,11 +1757,11 @@ function disableMapForPdf(disable) {
     <h3>📝 Nová poznámka</h3>
     <div class="note-cats">
       <div class="note-cat nc-0 sel" data-cat="0" onclick="selectCat(0)">📌 Obecná</div>
-      <div class="note-cat nc-1" data-cat="1" onclick="selectCat(1)">🏗️ Záporník</div>
-      <div class="note-cat nc-2" data-cat="2" onclick="selectCat(2)">🪨 Beton</div>
-      <div class="note-cat nc-3" data-cat="3" onclick="selectCat(3)">⚠️ Problém</div>
-      <div class="note-cat nc-4" data-cat="4" onclick="selectCat(4)">✅ Hotovo</div>
-      <div class="note-cat nc-5" data-cat="5" onclick="selectCat(5)">🔍 Kontrola</div>
+      <div class="note-cat nc-1" data-cat="1" onclick="selectCat(1)">ℹ️ Informace</div>
+      <div class="note-cat nc-2" data-cat="2" onclick="selectCat(2)">⚠️ Problém</div>
+      <div class="note-cat nc-3" data-cat="3" onclick="selectCat(3)">✅ Hotovo</div>
+      <div class="note-cat nc-4" data-cat="4" onclick="selectCat(4)">🔍 Kontrola</div>
+      <div class="note-cat nc-5" data-cat="5" onclick="selectCat(5)">📋 Kategorie 6</div>
     </div>
     <input id="note-author" class="note-field" type="text" placeholder="Vaše jméno *" maxlength="40">
     <textarea id="note-text" class="note-field" placeholder="Text poznámky..."></textarea>
@@ -1535,11 +1811,11 @@ function disableMapForPdf(disable) {
     <h3>✏️ Upravit poznámku</h3>
     <div class="note-cats" id="edit-cats">
       <div class="note-cat nc-0" data-cat="0" onclick="selectEditCat(0)">📌 Obecná</div>
-      <div class="note-cat nc-1" data-cat="1" onclick="selectEditCat(1)">🏗️ Záporník</div>
-      <div class="note-cat nc-2" data-cat="2" onclick="selectEditCat(2)">🪨 Beton</div>
-      <div class="note-cat nc-3" data-cat="3" onclick="selectEditCat(3)">⚠️ Problém</div>
-      <div class="note-cat nc-4" data-cat="4" onclick="selectEditCat(4)">✅ Hotovo</div>
-      <div class="note-cat nc-5" data-cat="5" onclick="selectEditCat(5)">🔍 Kontrola</div>
+      <div class="note-cat nc-1" data-cat="1" onclick="selectEditCat(1)">ℹ️ Informace</div>
+      <div class="note-cat nc-2" data-cat="2" onclick="selectEditCat(2)">⚠️ Problém</div>
+      <div class="note-cat nc-3" data-cat="3" onclick="selectEditCat(3)">✅ Hotovo</div>
+      <div class="note-cat nc-4" data-cat="4" onclick="selectEditCat(4)">🔍 Kontrola</div>
+      <div class="note-cat nc-5" data-cat="5" onclick="selectEditCat(5)">📋 Kategorie 6</div>
     </div>
     <input id="edit-author" class="note-field" type="text" placeholder="Vaše jméno *" maxlength="40">
     <textarea id="edit-text" class="note-field" placeholder="Text poznámky..."></textarea>
@@ -1549,6 +1825,42 @@ function disableMapForPdf(disable) {
       <button class="note-btn note-btn-cancel" onclick="closeEditModal()">Zrušit</button>
       <button class="note-btn note-btn-addphoto" onclick="document.getElementById('edit-photo-input').click()">📷</button>
       <button class="note-btn note-btn-save" onclick="saveEditNote()">Uložit</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Propustek panel -->
+<div id="prop-panel">
+  <div id="prop-header">
+    <div id="prop-title">Propustek</div>
+    <button id="btn-prop-fs" onclick="document.getElementById('prop-panel').classList.toggle('fullscreen')">⛶</button>
+    <button id="btn-prop-close" onclick="closePropPanel()">✕</button>
+  </div>
+  <div id="prop-tabs"></div>
+  <div id="prop-content">
+    <div id="prop-open-wrap" style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:20px;">
+      <div style="font-size:40px;">📄</div>
+      <div id="prop-open-label" style="font-size:13px;color:var(--text2);text-align:center;"></div>
+      <button onclick="openPropPdfExternal()" style="background:#1565c0;color:#fff;border:none;border-radius:10px;padding:12px 24px;font-size:15px;font-weight:700;cursor:pointer;">
+        📂 Otevřít výkres ↗
+      </button>
+    </div>
+  </div>
+  <!-- Poznámky propustku -->
+  <div id="prop-notes-section">
+    <div id="prop-notes-header">
+      <span>📝 Poznámky k propustku</span>
+      <button id="btn-prop-add-note" onclick="togglePropNoteForm()">+ Přidat</button>
+    </div>
+    <div id="prop-notes-list"></div>
+  </div>
+  <div id="prop-note-form">
+    <input id="prop-note-author" class="note-field" type="text" placeholder="Vaše jméno *" maxlength="40" style="margin-bottom:0;">
+    <textarea id="prop-note-text" class="note-field" placeholder="Poznámka k propustku..." style="min-height:50px;margin-bottom:0;resize:none;"></textarea>
+    <div style="display:flex;gap:6px;">
+      <button onclick="savePropNote()" style="flex:1;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:8px;font-size:13px;cursor:pointer;">Uložit</button>
+      <button onclick="togglePropNoteForm()" style="flex:1;background:var(--panel2);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:13px;cursor:pointer;">Zrušit</button>
     </div>
   </div>
 </div>
