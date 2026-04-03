@@ -518,6 +518,58 @@ textarea.note-field { min-height:80px; resize:vertical; }
   font-size: 12px !important;
   line-height: 1.5 !important;
 }
+
+#prikop-stav-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: rgba(0,0,0,.6);
+  align-items: center;
+  justify-content: center;
+}
+#prikop-stav-modal.open { display: flex; }
+#prikop-stav-box {
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 20px;
+  width: min(92vw, 360px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+#prikop-stav-title { font-size: 14px; font-weight: 700; color: var(--accent2); }
+#prikop-stav-km { font-size: 12px; color: var(--text2); }
+.prikop-stav-btn {
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+.prikop-stav-btn.hotovo { background: #166534; color: #bbf7d0; }
+.prikop-stav-btn.castecne { background: #92400e; color: #fde68a; }
+.prikop-stav-btn.reset { background: var(--panel2); color: var(--text2); font-size: 12px; }
+
+.etapa-tooltip.leaflet-popup-content-wrapper,
+.so-tooltip.leaflet-popup-content-wrapper {
+  background: rgba(15,52,96,0.97) !important;
+  color: #eaeaea !important;
+  border: 1px solid #4fc3f7 !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+}
+.etapa-tooltip.leaflet-popup-content-wrapper .leaflet-popup-content,
+.so-tooltip.leaflet-popup-content-wrapper .leaflet-popup-content {
+  margin: 10px 14px !important;
+}
+.etapa-tooltip .leaflet-popup-tip,
+.so-tooltip .leaflet-popup-tip {
+  background: rgba(15,52,96,0.97) !important;
+}
 </style>
 </head>
 <body>
@@ -1814,15 +1866,24 @@ var ETAPY = [
 // ═══════════════════════════════════
 var CISTENI_PRIKOPY = {
   vpravo: [
-    {kmOd: 31.480, kmDo: 31.828, delka: 348},
-    {kmOd: 32.337, kmDo: 32.565, delka: 228},
+    {id:'p-v1', kmOd: 31.480, kmDo: 31.828, delka: 348, stav: null},
+    {id:'p-v2', kmOd: 32.337, kmDo: 32.565, delka: 228, stav: null},
   ],
   vlevo: [
-    {kmOd: 31.450, kmDo: 32.135, delka: 685},
-    {kmOd: 32.303, kmDo: 32.557, delka: 254},
-    {kmOd: 32.569, kmDo: 32.760, delka: 191},
+    {id:'p-l1', kmOd: 31.450, kmDo: 32.135, delka: 685, stav: null},
+    {id:'p-l2', kmOd: 32.303, kmDo: 32.557, delka: 254, stav: null},
+    {id:'p-l3', kmOd: 32.569, kmDo: 32.760, delka: 191, stav: null},
   ],
 };
+// Načti stavy z localStorage
+(function() {
+  Object.keys(CISTENI_PRIKOPY).forEach(function(side) {
+    CISTENI_PRIKOPY[side].forEach(function(u) {
+      var saved = localStorage.getItem('prikop-stav-' + u.id);
+      if(saved) u.stav = saved;
+    });
+  });
+})();
 // ═══════════════════════════════════
 //  PROPUSTKY
 // ═══════════════════════════════════
@@ -1964,11 +2025,11 @@ function buildSO() {
     if(pts.length < 2) return;
 
     var line = L.polyline(pts, {color:so.barva, weight:7, opacity:0.55});
-    line.bindTooltip(
-      '<b>' + so.id + '</b> // Oprava silnice I/3<br>km ' + fmtKm(so.kmOd) + ' – ' + fmtKm(so.kmDo),
-      {sticky:true, className:'so-tooltip'}
+    line.bindPopup(
+      '<b>' + so.id + '</b> // Oprava silnice I/3' +
+      '<br>km <b>' + fmtKm(so.kmOd) + ' – ' + fmtKm(so.kmDo) + '</b>',
+      {className:'so-tooltip', maxWidth:240}
     );
-    (function(od,doo){ line.on('click', function(){ zoomToKm(od,doo); }); })(so.kmOd, so.kmDo);
     line.addTo(subGroup);
 
     var step = 20;
@@ -2027,11 +2088,77 @@ function buildEtapy() {
         if(pts.length < 2) return;
 
         var line = L.polyline(pts, {color:etapa.barva, weight:4, opacity:0.9});
-        line.bindTooltip(
-          '<b>Etapa ' + etapa.id + '</b> // ' + etapa.tooltip + '<br>km ' + fmtKm(u.kmOd) + ' – ' + fmtKm(u.kmDo),
-          {sticky:true, className:'etapa-tooltip'}
+        line.bindPopup(
+          '<b>Etapa ' + etapa.id + '</b> // ' + etapa.tooltip +
+          '<br>km <b>' + fmtKm(u.kmOd) + ' – ' + fmtKm(u.kmDo) + '</b>',
+          {className:'etapa-tooltip', maxWidth:260}
         );
-        (function(od,doo){ line.on('click', function(){ zoomToKm(od,doo); }); })(u.kmOd, u.kmDo);
+        line.addTo(subGroup);
+
+        var step = 14;
+        for(var pi = 1; pi < pts.length - 1; pi += step) {
+          var bear2 = bearList[pi];
+          var rot = bear2;
+          if(rot > 90 && rot < 270) rot = (rot + 180) % 360;
+          var perpDeg2 = strana === 'vpravo' ? (bear2+90) : (bear2-90);
+          var perpRad2 = perpDeg2 * Math.PI / 180;
+          var offExtra = 20 / 6371000;
+          var latL = pts[pi][0] + offExtra*(180/Math.PI)*Math.cos(perpRad2);
+          var lngL = pts[pi][1] + offExtra*(180/Math.PI)*Math.sin(perpRad2)/Math.cos(pts[pi][0]*Math.PI/180);
+          var lbl = L.divIcon({
+            className:'',
+            html:'<div style="color:'+etapa.barva+';font-size:14px;font-weight:800;white-space:nowrap;'+
+                 'text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;'+
+                 'transform:rotate('+(rot+90).toFixed(0)+'deg);transform-origin:0 50%;">'+
+                 'E'+etapa.id+' // '+(u.terminUsek||etapa.termin)+'</div>',
+            iconSize:[0,0], iconAnchor:[0,0],
+          });
+          L.marker([latL,lngL],{icon:lbl,interactive:false}).addTo(subGroup);
+        }
+      });
+    });
+  });
+}
+
+function buildEtapy() {
+  var mainGroup = L.layerGroup().addTo(map);
+  layerGroups.etapy = mainGroup;
+  var offsetBase = 28;
+
+  ETAPY.forEach(function(etapa) {
+    // Vlastní podvrstva pro každou etapu
+    var subGroup = L.layerGroup().addTo(mainGroup);
+    layerGroups['etapa'+etapa.id] = subGroup;
+
+    etapa.useky.forEach(function(u) {
+      var strany = u.strana === 'obe' ? ['vpravo','vlevo'] : [u.strana];
+      strany.forEach(function(strana, si) {
+        var pts = [];
+        var bearList = [];
+        var km = u.kmOd;
+        while(km <= u.kmDo + 0.001) {
+          var pos = realKmToLatLng(km);
+          if(pos) {
+            var gpxM = interp(calibSorted,'realKm','gpxM',km);
+            var bear = bearingAtGpxM(gpxM);
+            var perpDeg = strana === 'vpravo' ? (bear+90) : (bear-90);
+            var perpRad = perpDeg * Math.PI / 180;
+            var off = (offsetBase + si*10) / 6371000;
+            var lat = pos[0] + off*(180/Math.PI)*Math.cos(perpRad);
+            var lng = pos[1] + off*(180/Math.PI)*Math.sin(perpRad)/Math.cos(pos[0]*Math.PI/180);
+            pts.push([lat,lng]);
+            bearList.push(bear);
+          }
+          km = Math.round((km+0.020)*1000)/1000;
+        }
+        if(pts.length < 2) return;
+
+        var line = L.polyline(pts, {color:etapa.barva, weight:4, opacity:0.9});
+        line.bindPopup(
+          '<b>Etapa ' + etapa.id + '</b> // ' + etapa.tooltip +
+          '<br>km <b>' + fmtKm(u.kmOd) + ' – ' + fmtKm(u.kmDo) + '</b>',
+          {className:'etapa-tooltip', maxWidth:260}
+        );
         line.addTo(subGroup);
 
         var step = 14;
@@ -2062,66 +2189,64 @@ function buildEtapy() {
 function buildPrikopy() {
   var group = L.layerGroup().addTo(map);
   layerGroups.prikopy = group;
-
-  var offset = 18; // px od osy
+  var offset = 18;
 
   function drawSide(useky, side) {
     useky.forEach(function(u) {
       var pts = [];
-      // Interpoluj body každých 20m
       var km = u.kmOd;
       while(km <= u.kmDo + 0.001) {
         var pos = realKmToLatLng(km);
         if(pos) {
-          var gpxM = interp(calibSorted, 'realKm', 'gpxM', km);
+          var gpxM = interp(calibSorted,'realKm','gpxM',km);
           var bear = bearingAtGpxM(gpxM);
-          // vlevo = bear-90, vpravo = bear+90 (ve směru staničení)
-          var perpDeg = side === 'vpravo' ? (bear + 90) : (bear - 90);
+          var perpDeg = side === 'vpravo' ? (bear+90) : (bear-90);
           var perpRad = perpDeg * Math.PI / 180;
-          var R = 6371000;
-          var lat = pos[0] + (offset / R) * (180 / Math.PI) * Math.cos(perpRad);
-          var lng = pos[1] + (offset / R) * (180 / Math.PI) * Math.sin(perpRad) / Math.cos(pos[0] * Math.PI / 180);
-          pts.push([lat, lng]);
+          var lat = pos[0] + (offset/6371000)*(180/Math.PI)*Math.cos(perpRad);
+          var lng = pos[1] + (offset/6371000)*(180/Math.PI)*Math.sin(perpRad)/Math.cos(pos[0]*Math.PI/180);
+          pts.push([lat,lng]);
         }
-        km = Math.round((km + 0.020) * 1000) / 1000;
+        km = Math.round((km+0.020)*1000)/1000;
       }
       if(pts.length < 2) return;
 
-      // Čára
-      var line = L.polyline(pts, {
-        color: '#1e40af',
-        weight: 3,
-        opacity: 0.85,
-        interactive: true,
-      });
-
-      // Popis po kliknutí
+      var stavBarva = u.stav === 'cele' ? '#16a34a' : u.stav === 'castecne' ? '#f97316' : '#1e40af';
+      var line = L.polyline(pts, {color:stavBarva, weight:3, opacity:0.85, interactive:true});
       var stranaLabel = side === 'vpravo' ? 'vpravo' : 'vlevo';
-      line.bindTooltip(
-        '🧹 Čištění příkopu ' + stranaLabel + '<br>' +
-        'km ' + fmtKm(u.kmOd) + ' – ' + fmtKm(u.kmDo) + '<br>' +
-        'délka: <b>' + u.delka + ' m</b>',
-        {sticky: true, className: 'prikop-tooltip'}
-      );
+
+      if(!prikopLayers[u.id]) prikopLayers[u.id] = {};
+      prikopLayers[u.id].line = line;
+      prikopLayers[u.id].side = side;
+      prikopLayers[u.id].u = u;
+
+      (function(uu, sl){ line.on('click', function(){ openPrikopModal(uu, sl); }); })(u, stranaLabel);
       line.addTo(group);
 
-      // Štítek uprostřed
-      var midKm = (u.kmOd + u.kmDo) / 2;
+      // Štítek uprostřed - klikatelný
+      var midKm = (u.kmOd + u.kmDo)/2;
       var midPos = realKmToLatLng(midKm);
       if(midPos) {
-        var gpxMid = interp(calibSorted, 'realKm', 'gpxM', midKm);
+        var gpxMid = interp(calibSorted,'realKm','gpxM',midKm);
         var bearMid = bearingAtGpxM(gpxMid);
-        var perpDegM = side === 'vpravo' ? (bearMid + 90) : (bearMid - 90);
+        var perpDegM = side === 'vpravo' ? (bearMid+90) : (bearMid-90);
         var perpRadM = perpDegM * Math.PI / 180;
-        var R = 6371000;
-        var latM = midPos[0] + (offset + 10) / R * (180 / Math.PI) * Math.cos(perpRadM);
-        var lngM = midPos[1] + (offset + 10) / R * (180 / Math.PI) * Math.sin(perpRadM) / Math.cos(midPos[0] * Math.PI / 180);
+        var latM = midPos[0] + ((offset+10)/6371000)*(180/Math.PI)*Math.cos(perpRadM);
+        var lngM = midPos[1] + ((offset+10)/6371000)*(180/Math.PI)*Math.sin(perpRadM)/Math.cos(midPos[0]*Math.PI/180);
+        var stavPrefix = u.stav === 'cele' ? '✅ ' : u.stav === 'castecne' ? '🟠 ' : '🧹 ';
+        var labelText = 'Čištění příkopů - ' + u.delka + ' m';
         var labelIcon = L.divIcon({
-          className: '',
-          html: '<div style="color:#1e40af;font-size:13px;font-weight:800;white-space:nowrap;text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff;">🧹 Čištění příkopů - ' + u.delka + ' m</div>',
-          iconAnchor: [20, 10],
+          className:'',
+          html:'<div style="color:'+stavBarva+';font-size:13px;font-weight:800;white-space:nowrap;'+
+               'text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff;'+
+               'cursor:pointer;">'+stavPrefix+labelText+'</div>',
+          iconAnchor:[20,10],
         });
-        L.marker([latM, lngM], {icon: labelIcon, interactive: false}).addTo(group);
+        var lm = L.marker([latM,lngM], {icon:labelIcon, interactive:true});
+        (function(uu, sl){ lm.on('click', function(){ openPrikopModal(uu, sl); }); })(u, stranaLabel);
+        lm.addTo(group);
+        prikopLayers[u.id].labelMarker = lm;
+        prikopLayers[u.id].labelLatLng = [latM,lngM];
+        prikopLayers[u.id].labelText = labelText;
       }
     });
   }
@@ -2129,6 +2254,7 @@ function buildPrikopy() {
   drawSide(CISTENI_PRIKOPY.vpravo, 'vpravo');
   drawSide(CISTENI_PRIKOPY.vlevo,  'vlevo');
 }
+
 function buildPropustky() {
   propLayer = L.layerGroup().addTo(map);
   layerGroups.propustky = propLayer;
@@ -2408,6 +2534,62 @@ function closePropEdit() {
   propEditKey = null;
 }
 
+
+var currentPrikopId = null;
+var prikopLayers = {}; // id → {line, labelMarker}
+
+function openPrikopModal(u, stranaLabel) {
+  currentPrikopId = u.id;
+  document.getElementById('prikop-stav-title').textContent = '🧹 Čištění příkopu ' + stranaLabel;
+  document.getElementById('prikop-stav-km').textContent = 'km ' + fmtKm(u.kmOd) + ' – ' + fmtKm(u.kmDo) + ' // délka: ' + u.delka + ' m';
+  document.getElementById('prikop-stav-modal').classList.add('open');
+  zoomToKm(u.kmOd, u.kmDo);
+}
+
+function closePrikopModal() {
+  document.getElementById('prikop-stav-modal').classList.remove('open');
+  currentPrikopId = null;
+}
+
+function setPrikopStav(stav) {
+  if(!currentPrikopId) return;
+  // Najdi úsek
+  var found = null;
+  Object.keys(CISTENI_PRIKOPY).forEach(function(side) {
+    CISTENI_PRIKOPY[side].forEach(function(u) {
+      if(u.id === currentPrikopId) { u.stav = stav; found = u; }
+    });
+  });
+  if(stav) localStorage.setItem('prikop-stav-' + currentPrikopId, stav);
+  else localStorage.removeItem('prikop-stav-' + currentPrikopId);
+  // Aktualizuj barvu štítku
+  updatePrikopLabel(currentPrikopId, stav);
+  closePrikopModal();
+}
+
+function updatePrikopLabel(id, stav) {
+  var entry = prikopLayers[id];
+  if(!entry) return;
+  var barva = stav === 'cele' ? '#16a34a' : stav === 'castecne' ? '#f97316' : '#1e40af';
+  // Aktualizuj barvu čáry
+  if(entry.line) entry.line.setStyle({color: barva});
+  // Aktualizuj štítek - znovu vykreslit
+  if(entry.labelMarker) {
+    var map2 = entry.labelMarker._map;
+    if(map2) map2.removeLayer(entry.labelMarker);
+  }
+  if(entry.labelLatLng && entry.labelText) {
+    var prefix = stav === 'cele' ? '✅ ' : stav === 'castecne' ? '🟠 ' : '🧹 ';
+    var lbl = L.divIcon({
+      className:'',
+      html:'<div style="color:'+barva+';font-size:13px;font-weight:800;white-space:nowrap;text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff;">'+prefix+entry.labelText+'</div>',
+      iconAnchor:[20,10],
+    });
+    entry.labelMarker = L.marker(entry.labelLatLng, {icon:lbl, interactive:false});
+    if(layerGroups.prikopy) entry.labelMarker.addTo(layerGroups.prikopy);
+  }
+}
+
 </script>
 
 <!-- Nová poznámka -->
@@ -2540,6 +2722,18 @@ function closePropEdit() {
         <button onclick="closePropEdit()" style="flex:1;background:var(--panel2);color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:14px;cursor:pointer;">Zrušit</button>
       </div>
     </div>
+  </div>
+</div>
+
+
+<div id="prikop-stav-modal">
+  <div id="prikop-stav-box">
+    <div id="prikop-stav-title">🧹 Čištění příkopu</div>
+    <div id="prikop-stav-km"></div>
+    <button class="prikop-stav-btn hotovo" onclick="setPrikopStav('cele')">✅ Hotovo celé</button>
+    <button class="prikop-stav-btn castecne" onclick="setPrikopStav('castecne')">🟠 Hotovo částečně</button>
+    <button class="prikop-stav-btn reset" onclick="setPrikopStav(null)">↩ Zrušit stav</button>
+    <button onclick="closePrikopModal()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;text-align:center;">Zavřít</button>
   </div>
 </div>
 
