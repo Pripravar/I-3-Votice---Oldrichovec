@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>I/3 Votice – Oldřichovec</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -486,7 +486,7 @@ textarea.note-field { min-height:80px; resize:vertical; }
 <button id="btn-gps" onclick="toggleGpsBtn()" title="GPS zapnout/vypnout / centrovat">📍</button>
 <div id="toast"></div>
 
-<div id="pdf-panel">
+<div id="pdf-panel" style="touch-action:pan-x pan-y pinch-zoom;">
   <div id="pdf-header">
     <button id="btn-pdf-prev" onclick="docNav(-1)">&#8249;</button>
     <div id="pdf-title">Situace</div>
@@ -978,6 +978,7 @@ function openDocPanel(pages, realKm, startIdx) {
   docPageIdx = startIdx || 0;
   var panel  = document.getElementById('pdf-panel');
   panel.classList.add('open');
+  disableMapForPdf(true);
   
   // Sestav záložky
   var tabs = document.getElementById('pdf-tabs');
@@ -1063,6 +1064,7 @@ function closePdf() {
   if(pf) { if(pf.tagName==='OBJECT') pf.data='about:blank'; else pf.src='about:blank'; }
   docPages=[]; docPageIdx=0;
   currentPdfSrc='';
+  disableMapForPdf(false);
 }
 function togglePdfFs() {document.getElementById('pdf-panel').classList.toggle('fullscreen');}
 
@@ -1137,6 +1139,15 @@ function init() {
   startGPS();
   loadNotes();
   initLongPress();
+  // Zastavit touch eventy z panelů aby nešly do Leaflet mapy
+  ['pdf-panel','prop-panel'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:false});
+    el.addEventListener('touchmove',  function(e){ e.stopPropagation(); }, {passive:false});
+    el.addEventListener('touchend',   function(e){ e.stopPropagation(); }, {passive:false});
+    el.addEventListener('wheel',      function(e){ e.stopPropagation(); }, {passive:false});
+  });
   showToast('I/3 Votice – Oldřichovec ✓',3000);
 }
 
@@ -1281,7 +1292,7 @@ function selectNoteMarker(marker, noteId) {
     iconAnchor: [13, 56],
   });
   selectedNoteArrow = L.marker(latlng, {icon:arrowIcon, zIndexOffset:600, interactive:false});
-  selectedNoteArrow.addTo(notesLayer);
+  selectedNoteArrow.addTo(map);
 }
 
 // ── Dlouhý stisk mapy = nová poznámka ─────────────────
@@ -1656,6 +1667,7 @@ function openPropPanel(prop) {
   var title = document.getElementById('prop-title');
   panel.classList.add('open');
   title.textContent = prop.nazev;
+  disableMapForPdf(true);
 
   // Záložky
   var tabs = document.getElementById('prop-tabs');
@@ -1682,23 +1694,10 @@ function renderPropPage(idx) {
   var p = propPages[idx];
   currentPropSrc = p.soubor;
   document.querySelectorAll('#prop-tabs .pdf-tab').forEach(function(b,i){ b.classList.toggle('active',i===idx); });
-
   var openWrap = document.getElementById('prop-open-wrap');
   var frameEl  = document.getElementById('prop-iframe');
-
-  if(!frameEl) {
-    // Vytvoř iframe uvnitř prop-content
-    var cont = document.getElementById('prop-content');
-    openWrap.style.display = 'none';
-    var fr = document.createElement('iframe');
-    fr.id = 'prop-iframe';
-    fr.style.cssText = 'flex:1;width:100%;border:none;min-height:0;touch-action:pan-x pan-y pinch-zoom;';
-    cont.appendChild(fr);
-    frameEl = fr;
-  }
-  openWrap.style.display = 'none';
-  frameEl.style.display = 'block';
-  frameEl.src = p.soubor;
+  if(openWrap) openWrap.style.display = 'none';
+  if(frameEl)  { frameEl.style.display = 'flex'; frameEl.src = p.soubor; }
 }
 
 function openPropPdfExternal() {
@@ -1988,20 +1987,18 @@ function closePropEdit() {
 
 
 <!-- Propustek panel -->
-<div id="prop-panel">
+<div id="prop-panel" style="touch-action:pan-x pan-y pinch-zoom;">
   <div id="prop-header">
     <div id="prop-title">Propustek</div>
     <button id="btn-prop-fs" onclick="togglePropFs()">⛶</button>
     <button id="btn-prop-close" onclick="closePropPanel()">✕</button>
   </div>
   <div id="prop-tabs"></div>
-  <div id="prop-content">
-    <div id="prop-open-wrap" style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:20px;">
+  <div id="prop-content" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+    <iframe id="prop-iframe" src="" style="flex:1;width:100%;border:none;display:none;touch-action:pan-x pan-y pinch-zoom;"></iframe>
+    <div id="prop-open-wrap" style="flex:1;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:20px;">
       <div style="font-size:40px;">📄</div>
       <div id="prop-open-label" style="font-size:13px;color:var(--text2);text-align:center;"></div>
-      <button onclick="openPropPdfExternal()" style="background:#1565c0;color:#fff;border:none;border-radius:10px;padding:12px 24px;font-size:15px;font-weight:700;cursor:pointer;">
-        📂 Otevřít výkres ↗
-      </button>
     </div>
   </div>
   <!-- Poznámky propustku -->
