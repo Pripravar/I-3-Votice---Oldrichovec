@@ -1914,23 +1914,19 @@ function buildSanace() {
   var group = L.layerGroup().addTo(map);
   layerGroups.sanace = group;
 
-  SANACE.forEach(function(s, idx) {
-    // Sestav rohové body obdélníka přes osu (vlevo i vpravo)
-    var offM = 7; // metrů od středu osy na každou stranu
+  SANACE.forEach(function(s) {
+    var offM = 8;
     var corners = [];
-    var kms = [s.kmOd, s.kmDo];
-    // Levý okraj: kmOd vlevo, kmDo vlevo; Pravý okraj: kmDo vpravo, kmOd vpravo
-    var sides = ['vlevo','vlevo','vpravo','vpravo'];
-    var kmsOrder = [s.kmOd, s.kmDo, s.kmDo, s.kmOd];
+    var sides =    ['vlevo', 'vlevo', 'vpravo', 'vpravo'];
+    var kmsOrder = [s.kmOd,  s.kmDo,  s.kmDo,   s.kmOd];
 
     for(var i=0; i<4; i++) {
       var km = kmsOrder[i];
-      var side = sides[i];
       var pos = realKmToLatLng(km);
       if(!pos) return;
       var gpxM = interp(calibSorted,'realKm','gpxM',km);
       var bear = bearingAtGpxM(gpxM);
-      var perpDeg = side === 'vpravo' ? (bear+90) : (bear-90);
+      var perpDeg = sides[i] === 'vpravo' ? (bear+90) : (bear-90);
       var perpRad = perpDeg * Math.PI / 180;
       var off = offM / 6371000;
       var lat = pos[0] + off*(180/Math.PI)*Math.cos(perpRad);
@@ -1939,41 +1935,15 @@ function buildSanace() {
     }
     if(corners.length < 4) return;
 
-    // SVG šrafovaný polygon — Leaflet neumí nativně pattern, použijeme
-    // střídající se diagonální čáry přes polygon pomocí dashArray polyline
-    // Nejjednodušší: polygon + šrafovací čáry přes něj
-
-    // Základní polygon (průhledný fill, žlutý okraj)
+    // Modrý průhledný obdélník
     var poly = L.polygon(corners, {
-      color: '#fbbf24',
+      color: '#0ea5e9',
       weight: 2,
       opacity: 0.9,
-      fillColor: '#fbbf24',
-      fillOpacity: 0.15,
+      fillColor: '#0ea5e9',
+      fillOpacity: 0.25,
       interactive: true,
     });
-
-    // Šrafovací čáry (diagonální) přes polygon
-    // Interpolujeme body mezi levým a pravým okrajem
-    var leftStart  = corners[0];
-    var leftEnd    = corners[1];
-    var rightEnd   = corners[2];
-    var rightStart = corners[3];
-
-    // Počet šrafovacích čar
-    var nLines = Math.max(3, Math.round((s.kmDo - s.kmOd) * 1000 / 15));
-    for(var j=0; j<=nLines; j++) {
-      var t = j/nLines;
-      // Bod na levém okraji
-      var lLat = leftStart[0] + t*(leftEnd[0]-leftStart[0]);
-      var lLng = leftStart[1] + t*(leftEnd[1]-leftStart[1]);
-      // Bod na pravém okraji (invertovaný)
-      var rLat = rightStart[0] + t*(rightEnd[0]-rightStart[0]);
-      var rLng = rightStart[1] + t*(rightEnd[1]-rightStart[1]);
-      L.polyline([[lLat,lLng],[rLat,rLng]], {
-        color:'#0ea5e9', weight:2, opacity:0.8, interactive:false
-      }).addTo(group);
-    }
 
     var delka = Math.round((s.kmDo - s.kmOd)*1000);
     poly.bindTooltip(
@@ -1988,13 +1958,14 @@ function buildSanace() {
     if(midPos) {
       var lbl = L.divIcon({
         className:'',
-        html:'<div class="sanace-label">⛏️ Sanace</div>',
-        iconAnchor:[27,8],
+        html:'<div style="color:#000;font-size:20px;font-weight:900;white-space:nowrap;text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff;">⛏️ Sanace</div>',
+        iconAnchor:[27,10],
       });
       L.marker(midPos,{icon:lbl,interactive:false}).addTo(group);
     }
   });
 }
+
 function buildSO() {
   var mainGroup = L.layerGroup().addTo(map);
   layerGroups.so = mainGroup;
