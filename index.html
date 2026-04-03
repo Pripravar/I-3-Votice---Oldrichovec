@@ -432,6 +432,19 @@ textarea.note-field { min-height:80px; resize:vertical; }
 }
 #prop-note-form.open { display: flex; }
 
+
+/* Blokovat touch na mapě při otevřeném PDF panelu */
+body.pdf-open #map { pointer-events: none; }
+body.pdf-open .leaflet-control { pointer-events: auto; }
+
+/* PDF iframe scroll a zoom */
+#pdf-frame, #prop-iframe {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#pdf-frame-wrap {
+  overflow: hidden;
+}
 </style>
 </head>
 <body>
@@ -492,17 +505,15 @@ textarea.note-field { min-height:80px; resize:vertical; }
     <div id="pdf-title">Situace</div>
     <div id="pdf-counter"></div>
     <button id="btn-pdf-next" onclick="docNav(1)">&#8250;</button>
+    <button onclick="if(currentPdfSrc)window.open(currentPdfSrc,'_blank')" title="Otevřít v novém okně" style="background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:4px 6px;">↗</button>
     <button id="btn-pdf-fs" onclick="togglePdfFs()">⛶</button>
     <button id="btn-pdf-close" onclick="closePdf()">✕</button>
   </div>
   <div id="pdf-tabs"></div>
   <div id="pdf-frame-wrap" style="flex:1;display:flex;flex-direction:column;background:#222;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y pinch-zoom;">
-    <object id="pdf-frame" data="" type="application/pdf"
-      style="width:100%;flex:1;border:none;display:block;min-height:0;touch-action:pan-x pan-y pinch-zoom;">
-      <p style="color:#aaa;padding:20px;text-align:center;">
-        PDF nelze zobrazit — <a id="pdf-fallback-link" href="" target="_blank" style="color:#4fc3f7;">Otevřít PDF ↗</a>
-      </p>
-    </object>
+    <iframe id="pdf-frame" src="" 
+      style="width:100%;flex:1;border:none;display:block;min-height:0;touch-action:pan-x pan-y pinch-zoom;"
+      allowfullscreen></iframe>
   </div>
   <div id="pdf-open-btn-wrap" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:20px;">
     <div style="font-size:48px;">📄</div>
@@ -836,12 +847,7 @@ function openPRPanel(realKm, pr) {
   if(openWrap) openWrap.style.display='none';
   if(frameWrap) frameWrap.style.display='flex';
   var frame = document.getElementById('pdf-frame');
-  if(frame) {
-    if(frame.tagName==='OBJECT') { frame.data = pr.soubor; }
-    else { frame.src = pr.soubor; }
-    var fl = document.getElementById('pdf-fallback-link');
-    if(fl) fl.href = pr.soubor;
-  }
+  if(frame) frame.src = pr.soubor;
 }
 
 // Azimut úseku mezi dvěma body (stupně, 0=N, 90=E)
@@ -978,6 +984,7 @@ function openDocPanel(pages, realKm, startIdx) {
   docPageIdx = startIdx || 0;
   var panel  = document.getElementById('pdf-panel');
   panel.classList.add('open');
+  document.body.classList.add('pdf-open');
   disableMapForPdf(true);
   
   // Sestav záložky
@@ -1038,12 +1045,7 @@ function renderDocPage(realKm) {
   if(openWrap) openWrap.style.display='none';
   if(frameWrap) frameWrap.style.display='flex';
   var frame = document.getElementById('pdf-frame');
-  if(frame) {
-    if(frame.tagName === 'OBJECT') { frame.data = p.soubor; }
-    else { frame.src = p.soubor; }
-    var fl = document.getElementById('pdf-fallback-link');
-    if(fl) fl.href = p.soubor;
-  }
+  if(frame) frame.src = p.soubor;
 }
 
 function docNav(dir) {
@@ -1061,7 +1063,7 @@ function docGoTo(idx) {
 function closePdf() {
   document.getElementById('pdf-panel').classList.remove('open','fullscreen');
   var pf=document.getElementById('pdf-frame');
-  if(pf) { if(pf.tagName==='OBJECT') pf.data='about:blank'; else pf.src='about:blank'; }
+  if(pf) pf.src='about:blank';
   docPages=[]; docPageIdx=0;
   currentPdfSrc='';
   disableMapForPdf(false);
@@ -1268,31 +1270,53 @@ function selectNoteMarker(marker, noteId) {
     var el = selectedNoteMarker.getElement();
     if(el) { var op = el.querySelector('.note-marker-pin'); if(op) op.classList.remove('selected'); }
   }
-  if(selectedNoteArrow) { map.removeLayer(selectedNoteArrow); selectedNoteArrow = null; }
+  // Smazat starou šipku
+  var oldArrow = document.getElementById('note-arrow-overlay');
+  if(oldArrow) oldArrow.remove();
+  selectedNoteArrow = null;
 
   selectedNoteMarker = marker;
 
-  // Přidat třídu selected - s malým zpožděním aby byl element v DOM
+  // Přidat selected třídu na pin
   setTimeout(function() {
     var el = marker.getElement();
-    if(el) {
-      var pin = el.querySelector('.note-marker-pin');
-      if(pin) pin.classList.add('selected');
-    }
-  }, 50);
+    if(!el) return;
+    var pin = el.querySelector('.note-marker-pin');
+    if(pin) pin.classList.add('selected');
 
-  // Šipka nad markerem
-  var latlng = marker.getLatLng();
-  var arrowIcon = L.divIcon({
-    className: '',
-    html: '<div style="animation:pulse-arrow 1s infinite;display:flex;flex-direction:column;align-items:center;">' +
-          '<div style="width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:20px solid #f5a623;filter:drop-shadow(0 0 3px #e94560);"></div>' +
-          '</div>',
-    iconSize: [26, 20],
-    iconAnchor: [13, 56],
-  });
-  selectedNoteArrow = L.marker(latlng, {icon:arrowIcon, zIndexOffset:600, interactive:false});
-  selectedNoteArrow.addTo(map);
+    // Šipka jako DOM element přímo nad Leaflet markerem
+    var markerEl = marker.getElement();
+    if(!markerEl) return;
+    var rect = markerEl.getBoundingClientRect();
+    var mapRect = document.getElementById('map').getBoundingClientRect();
+    var arrow = document.createElement('div');
+    arrow.id = 'note-arrow-overlay';
+    arrow.style.cssText = [
+      'position:fixed',
+      'left:' + (rect.left + rect.width/2 - 13) + 'px',
+      'top:' + (rect.top - 28) + 'px',
+      'width:26px',
+      'height:24px',
+      'pointer-events:none',
+      'z-index:9999',
+      'animation:pulse-arrow 0.9s ease-in-out infinite',
+    ].join(';');
+    arrow.innerHTML = '<div style="width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:22px solid #f5a623;filter:drop-shadow(0 0 4px #e94560);margin:auto;"></div>';
+    document.body.appendChild(arrow);
+    selectedNoteArrow = arrow;
+
+    // Aktualizuj pozici šipky při pohybu mapy
+    map.on('move zoom', updateArrowPosition);
+  }, 80);
+}
+
+function updateArrowPosition() {
+  if(!selectedNoteMarker || !selectedNoteArrow) return;
+  var el = selectedNoteMarker.getElement();
+  if(!el) return;
+  var rect = el.getBoundingClientRect();
+  selectedNoteArrow.style.left = (rect.left + rect.width/2 - 13) + 'px';
+  selectedNoteArrow.style.top  = (rect.top - 28) + 'px';
 }
 
 // ── Dlouhý stisk mapy = nová poznámka ─────────────────
@@ -1444,16 +1468,15 @@ function openNoteDetail(id) {
 function closeNoteDetail() {
   document.getElementById('note-detail').classList.remove('open');
   currentNoteId = null;
-  // Zrušit výběr markeru
   if(selectedNoteMarker) {
-    var pin = selectedNoteMarker.getElement() && selectedNoteMarker.getElement().querySelector('.note-marker-pin');
-    if(pin) pin.classList.remove('selected');
+    var el = selectedNoteMarker.getElement();
+    if(el) { var pin = el.querySelector('.note-marker-pin'); if(pin) pin.classList.remove('selected'); }
     selectedNoteMarker = null;
   }
-  if(selectedNoteArrow) {
-    map.removeLayer(selectedNoteArrow);
-    selectedNoteArrow = null;
-  }
+  var arrow = document.getElementById('note-arrow-overlay');
+  if(arrow) arrow.remove();
+  selectedNoteArrow = null;
+  map.off('move zoom', updateArrowPosition);
 }
 
 function openPhotoFs(src) {
@@ -1666,6 +1689,7 @@ function openPropPanel(prop) {
   var panel = document.getElementById('prop-panel');
   var title = document.getElementById('prop-title');
   panel.classList.add('open');
+  document.body.classList.add('pdf-open');
   title.textContent = prop.nazev;
   disableMapForPdf(true);
 
@@ -1712,6 +1736,7 @@ function togglePropFs() {
 function closePropPanel() {
   document.getElementById('prop-panel').classList.remove('open','fullscreen');
   document.getElementById('prop-note-form').classList.remove('open');
+  document.body.classList.remove('pdf-open');
   var fr = document.getElementById('prop-iframe');
   if(fr) fr.src = 'about:blank';
   currentPropId = null;
@@ -1990,6 +2015,7 @@ function closePropEdit() {
 <div id="prop-panel" style="touch-action:pan-x pan-y pinch-zoom;">
   <div id="prop-header">
     <div id="prop-title">Propustek</div>
+    <button onclick="if(currentPropSrc)window.open(currentPropSrc,'_blank')" title="Otevřít v novém okně" style="background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:4px 6px;">↗</button>
     <button id="btn-prop-fs" onclick="togglePropFs()">⛶</button>
     <button id="btn-prop-close" onclick="closePropPanel()">✕</button>
   </div>
