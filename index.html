@@ -326,7 +326,6 @@ textarea.note-field { min-height:80px; resize:vertical; }
   left: 50%;
   top: -44px;
   transform: translateX(-50%);
-  pointer-events: none;
   animation: pulse-arrow 1s infinite;
   z-index: 1001;
 }
@@ -434,8 +433,7 @@ textarea.note-field { min-height:80px; resize:vertical; }
 
 
 /* Blokovat touch na mapě při otevřeném PDF panelu */
-body.pdf-open #map { pointer-events: none; }
-body.pdf-open .leaflet-control { pointer-events: auto; }
+
 
 /* PDF iframe scroll a zoom */
 #pdf-frame, #prop-iframe {
@@ -445,6 +443,10 @@ body.pdf-open .leaflet-control { pointer-events: auto; }
 #pdf-frame-wrap {
   overflow: hidden;
 }
+
+/* Panel zachytí touch eventy - mapa nad panelem zůstane aktivní */
+#pdf-panel, #prop-panel { touch-action: pan-x pan-y pinch-zoom; }
+#pdf-frame, #prop-iframe { touch-action: pan-x pan-y pinch-zoom; }
 </style>
 </head>
 <body>
@@ -982,11 +984,14 @@ function onStaniceniClick(realKm) {
 function openDocPanel(pages, realKm, startIdx) {
   docPages   = pages;
   docPageIdx = startIdx || 0;
+
+  // Resetuj iframe vždy před novým načtením
+  var frame = document.getElementById('pdf-frame');
+  if(frame) frame.src = 'about:blank';
+
   var panel  = document.getElementById('pdf-panel');
   panel.classList.add('open');
-  document.body.classList.add('pdf-open');
-  disableMapForPdf(true);
-  
+
   // Sestav záložky
   var tabs = document.getElementById('pdf-tabs');
   tabs.innerHTML = '';
@@ -997,7 +1002,9 @@ function openDocPanel(pages, realKm, startIdx) {
     btn.onclick = (function(idx){return function(){docGoTo(idx);};})(i);
     tabs.appendChild(btn);
   });
-  renderDocPage(realKm);
+
+  // Malé zpoždění aby se about:blank stihl nastavit
+  setTimeout(function(){ renderDocPage(realKm); }, 50);
 }
 
 var currentPdfSrc = '';
@@ -1041,7 +1048,6 @@ function renderDocPage(realKm) {
   nosit.style.display = 'none';
   currentPdfSrc = p.soubor;
 
-  // Zobraz PDF v iframe
   if(openWrap) openWrap.style.display='none';
   if(frameWrap) frameWrap.style.display='flex';
   var frame = document.getElementById('pdf-frame');
@@ -1066,7 +1072,6 @@ function closePdf() {
   if(pf) pf.src='about:blank';
   docPages=[]; docPageIdx=0;
   currentPdfSrc='';
-  disableMapForPdf(false);
 }
 function togglePdfFs() {document.getElementById('pdf-panel').classList.toggle('fullscreen');}
 
@@ -1689,9 +1694,7 @@ function openPropPanel(prop) {
   var panel = document.getElementById('prop-panel');
   var title = document.getElementById('prop-title');
   panel.classList.add('open');
-  document.body.classList.add('pdf-open');
   title.textContent = prop.nazev;
-  disableMapForPdf(true);
 
   // Záložky
   var tabs = document.getElementById('prop-tabs');
@@ -1736,7 +1739,6 @@ function togglePropFs() {
 function closePropPanel() {
   document.getElementById('prop-panel').classList.remove('open','fullscreen');
   document.getElementById('prop-note-form').classList.remove('open');
-  document.body.classList.remove('pdf-open');
   var fr = document.getElementById('prop-iframe');
   if(fr) fr.src = 'about:blank';
   currentPropId = null;
