@@ -297,6 +297,10 @@ textarea.note-field { min-height:80px; resize:vertical; }
 }
 #note-edit-box h3 { font-size:15px; font-weight:700; margin-bottom:12px; color:#4fc3f7; }
 
+
+#pdf-panel.open #pdf-frame-wrap { cursor:default; }
+#pdf-frame { cursor:default; }
+
 </style>
 </head>
 <body>
@@ -344,7 +348,7 @@ textarea.note-field { min-height:80px; resize:vertical; }
   </div>
 </div>
 
-<button id="btn-gps" onclick="centerGPS()" title="Centrovat GPS">📍</button>
+<button id="btn-gps" onclick="toggleGpsBtn()" title="GPS zapnout/vypnout / centrovat">📍</button>
 <div id="toast"></div>
 
 <div id="pdf-panel">
@@ -357,7 +361,14 @@ textarea.note-field { min-height:80px; resize:vertical; }
     <button id="btn-pdf-close" onclick="closePdf()">✕</button>
   </div>
   <div id="pdf-tabs"></div>
-  <iframe id="pdf-frame" src=""></iframe>
+  <div id="pdf-frame-wrap" style="flex:1;display:flex;flex-direction:column;background:#222;min-height:0;">
+    <object id="pdf-frame" data="" type="application/pdf"
+      style="width:100%;flex:1;border:none;display:block;min-height:0;">
+      <p style="color:#aaa;padding:20px;text-align:center;">
+        PDF nelze zobrazit — <a id="pdf-fallback-link" href="" target="_blank" style="color:#4fc3f7;">Otevřít PDF ↗</a>
+      </p>
+    </object>
+  </div>
   <div id="pdf-nosit"><span>📄</span><div>Pro toto staničení nejsou výkresy k dispozici</div></div>
 </div>
 
@@ -640,25 +651,47 @@ function addPRMarker(group, lat, lng, realKm, bear, pr) {
 }
 
 function openPRPanel(realKm, pr) {
-  showToast('PŘ km '+fmtKm(realKm)+' (řez č.'+pr.rezIdx+')', 2000);
-  // Otevřít PDF s #page odkaz pro přibližné přiblížení
-  // Každá stránka PDF má cca 3 řezy → strana = Math.ceil(rezIdx/3)
-  var page = Math.ceil(pr.rezIdx / 3);
-  var src = pr.soubor + '#page=' + page;
+  showToast('PŘ km '+fmtKm(realKm)+' (řez č.'+pr.rezIdx+'/'+pr.total+')', 2000);
 
-  var panel = document.getElementById('pdf-panel');
-  var frame = document.getElementById('pdf-frame');
-  var nosit = document.getElementById('pdf-nosit');
-  var title = document.getElementById('pdf-title');
+  var src = pr.soubor;  // bez #page - otevřít celý soubor
+  currentPdfSrc = src;
+
+  var panel     = document.getElementById('pdf-panel');
+  var frame     = document.getElementById('pdf-frame');
+  var frameWrap = document.getElementById('pdf-frame-wrap');
+  var openWrap  = document.getElementById('pdf-open-btn-wrap');
+  var nosit     = document.getElementById('pdf-nosit');
+  var title     = document.getElementById('pdf-title');
+  var ctr       = document.getElementById('pdf-counter');
+
   panel.classList.add('open');
-  title.textContent = 'Pracovní příčný řez — km ' + fmtKm(realKm) + ' (řez č.' + pr.rezIdx + '/' + pr.total + ')';
-  frame.src = src;
-  frame.style.display = 'block';
+  disableMapForPdf(true);
   nosit.style.display = 'none';
+  title.textContent = 'Pracovní řez — km ' + fmtKm(realKm) + ' (řez č.' + pr.rezIdx + '/' + pr.total + ')';
+  ctr.textContent = '';
 
-  // Smazat záložky – PR má vlastní zobrazení
   document.getElementById('pdf-tabs').innerHTML =
     '<span style="font-size:11px;color:var(--text2);padding:4px 8px;">✂️ Pracovní příčné řezy</span>';
+
+  if(isMobile()) {
+    if(frameWrap) frameWrap.style.display='none';
+    if(openWrap) {
+      openWrap.style.display='flex';
+      var label = document.getElementById('pdf-open-label');
+      if(label) label.textContent = 'Pracovní řez km ' + fmtKm(realKm) + ' (řez č.' + pr.rezIdx + '/' + pr.total + ')';
+    }
+    return;
+  }
+
+  if(frameWrap) frameWrap.style.display='flex';
+  if(openWrap)  openWrap.style.display='none';
+  if(frame.tagName === 'OBJECT') {
+    frame.data = src;
+    var fl = document.getElementById('pdf-fallback-link');
+    if(fl) fl.href = src;
+  } else {
+    frame.src = src;
+  }
 }
 
 // Azimut úseku mezi dvěma body (stupně, 0=N, 90=E)
@@ -773,14 +806,17 @@ function findDocForKm(docs, realKm) {
 
 function onStaniceniClick(realKm) {
   showToast('km '+fmtKm(realKm),1500);
-  // Sestav seznam všech výkresů pro toto km
   var pages = [];
   var sit = findDocForKm(DOCS_SITUACE, realKm);
   var pp  = findDocForKm(DOCS_PP, realKm);
-  var vpr = findDocForKm(DOCS_VPR, realKm);
+  // Přidat situaci
   if(sit) pages.push({soubor:sit.soubor, nazev:sit.nazev, typ:'📐 Situace'});
+  // Přidat podélný profil
   if(pp)  pages.push({soubor:pp.soubor,  nazev:pp.nazev,  typ:'📊 Pod. profil'});
-  if(vpr) pages.push({soubor:vpr.soubor, nazev:vpr.nazev, typ:'✂️ Příčné řezy'});
+  // Přidat VŠECHNY 3 vzorové řezy vždy
+  DOCS_VPR.forEach(function(vpr, i) {
+    pages.push({soubor:vpr.soubor, nazev:vpr.nazev, typ:'✂️ VŘ '+(i+1)+'/3'});
+  });
   openDocPanel(pages, realKm, 0);
 }
 
@@ -789,6 +825,7 @@ function openDocPanel(pages, realKm, startIdx) {
   docPageIdx = startIdx || 0;
   var panel  = document.getElementById('pdf-panel');
   panel.classList.add('open');
+  disableMapForPdf(true);
   // Sestav záložky
   var tabs = document.getElementById('pdf-tabs');
   tabs.innerHTML = '';
@@ -802,31 +839,66 @@ function openDocPanel(pages, realKm, startIdx) {
   renderDocPage(realKm);
 }
 
+var currentPdfSrc = '';
+
+function isMobile() {
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
+}
+
+function openPdfExternal() {
+  if(currentPdfSrc) window.open(currentPdfSrc, '_blank');
+}
+
 function renderDocPage(realKm) {
-  var frame  = document.getElementById('pdf-frame');
-  var nosit  = document.getElementById('pdf-nosit');
-  var title  = document.getElementById('pdf-title');
-  var ctr    = document.getElementById('pdf-counter');
-  var btnP   = document.getElementById('btn-pdf-prev');
-  var btnN   = document.getElementById('btn-pdf-next');
+  var frame    = document.getElementById('pdf-frame');
+  var frameWrap= document.getElementById('pdf-frame-wrap');
+  var openWrap = document.getElementById('pdf-open-btn-wrap');
+  var nosit    = document.getElementById('pdf-nosit');
+  var title    = document.getElementById('pdf-title');
+  var ctr      = document.getElementById('pdf-counter');
+  var btnP     = document.getElementById('btn-pdf-prev');
+  var btnN     = document.getElementById('btn-pdf-next');
+
   // Aktualizuj záložky
   document.querySelectorAll('.pdf-tab').forEach(function(b,i){
     b.classList.toggle('active', i===docPageIdx);
   });
+
   if(docPages.length===0){
-    frame.src=''; frame.style.display='none'; nosit.style.display='flex';
+    frame.src='';
+    if(frameWrap) frameWrap.style.display='none';
+    if(openWrap)  openWrap.style.display='none';
+    nosit.style.display='flex';
     title.textContent='Výkresy — km '+(realKm?fmtKm(realKm):'');
     ctr.textContent=''; btnP.disabled=true; btnN.disabled=true;
     return;
   }
+
   var p = docPages[docPageIdx];
-  title.textContent = p.nazev;
+  title.textContent = p.nazev || p.typ || '';
   ctr.textContent   = (docPageIdx+1)+' / '+docPages.length;
   btnP.disabled = docPageIdx===0;
   btnN.disabled = docPageIdx===docPages.length-1;
-  frame.src = p.soubor;
-  frame.style.display = 'block';
   nosit.style.display = 'none';
+  currentPdfSrc = p.soubor;
+
+  if(isMobile()) {
+    // Na mobilu: zobraz tlačítko pro otevření v nativním prohlížeči
+    frame.src = '';
+    if(frameWrap) frameWrap.style.display='none';
+    if(openWrap) {
+      openWrap.style.display='flex';
+      var label = document.getElementById('pdf-open-label');
+      if(label) label.textContent = p.nazev || '';
+    }
+  } else {
+    // Na desktopu: zobraz iframe
+    if(frameWrap) frameWrap.style.display='flex';
+    if(openWrap)  openWrap.style.display='none';
+    frame.data = p.soubor;
+    var fl = document.getElementById('pdf-fallback-link');
+    if(fl) fl.href = p.soubor;
+  }
 }
 
 function docNav(dir) {
@@ -843,8 +915,9 @@ function docGoTo(idx) {
 
 function closePdf() {
   document.getElementById('pdf-panel').classList.remove('open','fullscreen');
-  document.getElementById('pdf-frame').src='';
+  var pf=document.getElementById('pdf-frame'); if(pf.tagName==='OBJECT') pf.data=''; else pf.src='';
   docPages=[]; docPageIdx=0;
+  disableMapForPdf(false);
 }
 function togglePdfFs() {document.getElementById('pdf-panel').classList.toggle('fullscreen');}
 
@@ -855,6 +928,7 @@ function startGPS() {
   if(!navigator.geolocation){showToast('GPS není k dispozici');return;}
   gpsActive=true; gpsCentering=true;
   document.getElementById('btn-gps').classList.add('active');
+  document.getElementById('lyr-gps').checked=true;
   gpsWatcher=navigator.geolocation.watchPosition(
     function(pos){updateGPS(pos.coords.latitude,pos.coords.longitude);},
     function(err){showToast('GPS chyba: '+err.message);},
@@ -864,7 +938,9 @@ function startGPS() {
 
 function stopGPS() {
   gpsActive=false;
+  gpsCentering=false;
   document.getElementById('btn-gps').classList.remove('active');
+  document.getElementById('lyr-gps').checked=false;
   if(gpsWatcher!==null){navigator.geolocation.clearWatch(gpsWatcher);gpsWatcher=null;}
   if(gpsMarker){map.removeLayer(gpsMarker);gpsMarker=null;}
   document.getElementById('km-display').textContent='km –';
@@ -1302,6 +1378,38 @@ window.addEventListener('load', function() {
   }
 });
 
+
+function toggleGpsBtn() {
+  if(!gpsActive) {
+    // GPS je vypnutá → zapni a centruj
+    document.getElementById('lyr-gps').checked=true;
+    startGPS();
+  } else if(!gpsCentering) {
+    // GPS je zapnutá ale necentruje → centruj
+    gpsCentering=true;
+    if(gpsMarker) map.setView(gpsMarker.getLatLng(),16);
+    showToast('Centrování GPS zapnuto',1200);
+  } else {
+    // GPS centruje → vypni GPS
+    stopGPS();
+    showToast('GPS vypnuta',1500);
+  }
+}
+
+function disableMapForPdf(disable) {
+  if(!map) return;
+  if(disable) {
+    map.scrollWheelZoom.disable();
+    map.dragging.disable();
+    map.touchZoom.disable();
+    map.doubleClickZoom.disable();
+  } else {
+    map.scrollWheelZoom.enable();
+    map.dragging.enable();
+    map.touchZoom.enable();
+    map.doubleClickZoom.enable();
+  }
+}
 </script>
 
 <!-- Nová poznámka -->
