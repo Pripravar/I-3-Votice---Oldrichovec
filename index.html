@@ -496,9 +496,9 @@ textarea.note-field { min-height:80px; resize:vertical; }
     <button id="btn-pdf-close" onclick="closePdf()">✕</button>
   </div>
   <div id="pdf-tabs"></div>
-  <div id="pdf-frame-wrap" style="flex:1;display:flex;flex-direction:column;background:#222;min-height:0;">
+  <div id="pdf-frame-wrap" style="flex:1;display:flex;flex-direction:column;background:#222;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y pinch-zoom;">
     <object id="pdf-frame" data="" type="application/pdf"
-      style="width:100%;flex:1;border:none;display:block;min-height:0;">
+      style="width:100%;flex:1;border:none;display:block;min-height:0;touch-action:pan-x pan-y pinch-zoom;">
       <p style="color:#aaa;padding:20px;text-align:center;">
         PDF nelze zobrazit — <a id="pdf-fallback-link" href="" target="_blank" style="color:#4fc3f7;">Otevřít PDF ↗</a>
       </p>
@@ -833,11 +833,14 @@ function openPRPanel(realKm, pr) {
   document.getElementById('pdf-tabs').innerHTML =
     '<span style="font-size:11px;color:var(--text2);padding:4px 8px;">✂️ Pracovní příčné řezy</span>';
 
-  if(frameWrap) frameWrap.style.display='none';
-  if(openWrap) {
-    openWrap.style.display='flex';
-    var label = document.getElementById('pdf-open-label');
-    if(label) label.textContent = 'Pracovní řez km ' + fmtKm(realKm) + ' (řez č.' + pr.rezIdx + '/' + pr.total + ')';
+  if(openWrap) openWrap.style.display='none';
+  if(frameWrap) frameWrap.style.display='flex';
+  var frame = document.getElementById('pdf-frame');
+  if(frame) {
+    if(frame.tagName==='OBJECT') { frame.data = pr.soubor; }
+    else { frame.src = pr.soubor; }
+    var fl = document.getElementById('pdf-fallback-link');
+    if(fl) fl.href = pr.soubor;
   }
 }
 
@@ -1271,11 +1274,11 @@ function selectNoteMarker(marker, noteId) {
   var latlng = marker.getLatLng();
   var arrowIcon = L.divIcon({
     className: '',
-    html: '<div style="animation:pulse-arrow 1s infinite;display:inline-block;">' +
-          '<div style="width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:24px solid #f5a623;filter:drop-shadow(0 0 4px #e94560);"></div>' +
+    html: '<div style="animation:pulse-arrow 1s infinite;display:flex;flex-direction:column;align-items:center;">' +
+          '<div style="width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:20px solid #f5a623;filter:drop-shadow(0 0 3px #e94560);"></div>' +
           '</div>',
-    iconSize: [28, 24],
-    iconAnchor: [14, -10],
+    iconSize: [26, 20],
+    iconAnchor: [13, 56],
   });
   selectedNoteArrow = L.marker(latlng, {icon:arrowIcon, zIndexOffset:600, interactive:false});
   selectedNoteArrow.addTo(notesLayer);
@@ -1662,28 +1665,58 @@ function openPropPanel(prop) {
     btn.className = 'pdf-tab' + (i===0?' active':'');
     btn.textContent = p.typ;
     btn.onclick = (function(idx){ return function(){
-      propPageIdx = idx;
-      currentPropSrc = propPages[idx].soubor;
-      document.getElementById('prop-open-label').textContent = propPages[idx].nazev;
-      document.querySelectorAll('#prop-tabs .pdf-tab').forEach(function(b,j){ b.classList.toggle('active',j===idx); });
+      renderPropPage(idx);
     };})(i);
     tabs.appendChild(btn);
   });
 
-  document.getElementById('prop-open-label').textContent = prop.nazev;
+  // Zobraz PDF v prop-content iframe
+  renderPropPage(0);
 
   // Načíst poznámky propustku
   loadPropNotes(prop.id);
+}
+
+function renderPropPage(idx) {
+  propPageIdx = idx;
+  var p = propPages[idx];
+  currentPropSrc = p.soubor;
+  document.querySelectorAll('#prop-tabs .pdf-tab').forEach(function(b,i){ b.classList.toggle('active',i===idx); });
+
+  var openWrap = document.getElementById('prop-open-wrap');
+  var frameEl  = document.getElementById('prop-iframe');
+
+  if(!frameEl) {
+    // Vytvoř iframe uvnitř prop-content
+    var cont = document.getElementById('prop-content');
+    openWrap.style.display = 'none';
+    var fr = document.createElement('iframe');
+    fr.id = 'prop-iframe';
+    fr.style.cssText = 'flex:1;width:100%;border:none;min-height:0;touch-action:pan-x pan-y pinch-zoom;';
+    cont.appendChild(fr);
+    frameEl = fr;
+  }
+  openWrap.style.display = 'none';
+  frameEl.style.display = 'block';
+  frameEl.src = p.soubor;
 }
 
 function openPropPdfExternal() {
   if(currentPropSrc) window.open(currentPropSrc, '_blank');
 }
 
+
+function togglePropFs() {
+  var p = document.getElementById('prop-panel');
+  p.classList.toggle('fullscreen');
+}
 function closePropPanel() {
   document.getElementById('prop-panel').classList.remove('open','fullscreen');
   document.getElementById('prop-note-form').classList.remove('open');
+  var fr = document.getElementById('prop-iframe');
+  if(fr) fr.src = 'about:blank';
   currentPropId = null;
+  currentPropSrc = '';
 }
 
 // ── Poznámky propustku (Firebase) s foto a editací ──
@@ -1958,7 +1991,7 @@ function closePropEdit() {
 <div id="prop-panel">
   <div id="prop-header">
     <div id="prop-title">Propustek</div>
-    <button id="btn-prop-fs" onclick="document.getElementById('prop-panel').classList.toggle('fullscreen')">⛶</button>
+    <button id="btn-prop-fs" onclick="togglePropFs()">⛶</button>
     <button id="btn-prop-close" onclick="closePropPanel()">✕</button>
   </div>
   <div id="prop-tabs"></div>
