@@ -1700,9 +1700,22 @@ function loadPropNotes(propId) {
       var n = val[key];
       var div = document.createElement('div');
       div.className = 'prop-note-item';
-      div.innerHTML = '<div class="prop-note-meta">👤 '+n.author+' · '+n.time+
-        '<button class="prop-note-del" onclick="deletePropNote(''+propId+'',''+key+'')">✕</button></div>'+
-        '<div class="prop-note-text">'+n.text+'</div>';
+      // Meta řádek
+      var meta = document.createElement('div');
+      meta.className = 'prop-note-meta';
+      meta.textContent = '👤 ' + n.author + ' · ' + n.time;
+      // Smazat tlačítko
+      var delBtn = document.createElement('button');
+      delBtn.className = 'prop-note-del';
+      delBtn.textContent = '✕';
+      (function(pid, k){ delBtn.onclick = function(){ deletePropNote(pid, k); }; })(propId, key);
+      meta.appendChild(delBtn);
+      // Text
+      var txt = document.createElement('div');
+      txt.className = 'prop-note-text';
+      txt.textContent = n.text;
+      div.appendChild(meta);
+      div.appendChild(txt);
       list.appendChild(div);
     });
   });
