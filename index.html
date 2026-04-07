@@ -1428,8 +1428,16 @@ function renderNoteMarkers() {
     layerGroups.notes = notesLayer;
   } else {
     notesLayer.clearLayers();
+    // Vyčistit DOM šipku
+    var oldArrow = document.getElementById('note-arrow-overlay');
+    if(oldArrow) oldArrow.remove();
+    // Vyčistit Leaflet pulse ring marker
+    if(selectedNoteArrow && selectedNoteArrow._map) {
+      map.removeLayer(selectedNoteArrow);
+    }
     selectedNoteMarker = null;
     selectedNoteArrow  = null;
+    map.off('move zoom moveend', updateArrowPosition);
   }
   notesData.forEach(function(note) {
     var cat = NOTE_CATS[note.cat] || NOTE_CATS[0];
@@ -1485,7 +1493,14 @@ function selectNoteMarker(marker, noteId) {
     var el = selectedNoteMarker.getElement();
     if(el) { var op = el.querySelector('.note-marker-pin'); if(op) op.classList.remove('selected'); }
   }
-  if(selectedNoteArrow) { map.removeLayer(selectedNoteArrow); selectedNoteArrow = null; }
+  // Vyčistit DOM šipku
+  var oldA = document.getElementById('note-arrow-overlay');
+  if(oldA) oldA.remove();
+  // Vyčistit Leaflet pulse ring
+  if(selectedNoteArrow) {
+    if(selectedNoteArrow._map) map.removeLayer(selectedNoteArrow);
+    selectedNoteArrow = null;
+  }
   map.off('move zoom moveend', updateArrowPosition);
 
   selectedNoteMarker = marker;
@@ -1673,10 +1688,15 @@ function closeNoteDetail() {
     if(el) { var pin = el.querySelector('.note-marker-pin'); if(pin) pin.classList.remove('selected'); }
     selectedNoteMarker = null;
   }
+  // Vyčistit DOM šipku
   var arrow = document.getElementById('note-arrow-overlay');
   if(arrow) arrow.remove();
+  // Vyčistit Leaflet pulse ring
+  if(selectedNoteArrow && selectedNoteArrow._map) {
+    map.removeLayer(selectedNoteArrow);
+  }
   selectedNoteArrow = null;
-  map.off('move zoom', updateArrowPosition);
+  map.off('move zoom moveend', updateArrowPosition);
 }
 
 function openPhotoFs(src) {
