@@ -1433,11 +1433,39 @@ function renderNoteMarkers() {
   }
   notesData.forEach(function(note) {
     var cat = NOTE_CATS[note.cat] || NOTE_CATS[0];
+
+    // Vypočítej nejbližší staničení
+    var nearest = nearestOnRoute(note.lat, note.lng);
+    var realKm = gpxCumToRealKm(nearest.cum);
+    var kmText = fmtKm(realKm);
+
+    // Uložit staničení do note objektu pro zobrazení v detailu
+    note._km = kmText;
+
+    // HTML: pin + štítek se staničením a autorem pod ním
+    var authorText = note.author ? note.author : '';
+    var labelHtml = '<div style="' +
+      'background:rgba(15,33,62,0.85);' +
+      'color:#fff;' +
+      'font-size:10px;' +
+      'font-weight:700;' +
+      'padding:2px 5px;' +
+      'border-radius:4px;' +
+      'white-space:nowrap;' +
+      'margin-top:2px;' +
+      'text-align:center;' +
+      'box-shadow:0 1px 3px rgba(0,0,0,.5);' +
+      'border:1px solid rgba(255,255,255,0.15);' +
+      '">' + kmText + (authorText ? '<br>' + authorText : '') + '</div>';
+
     var icon = L.divIcon({
       className: '',
-      html: '<div class="note-marker-pin ' + cat.pin + '" id="npin-' + note.id + '"></div>',
-      iconSize: [30,30],
-      iconAnchor: [15,30],
+      html: '<div style="display:flex;flex-direction:column;align-items:center;">' +
+            '<div class="note-marker-pin ' + cat.pin + '" id="npin-' + note.id + '"></div>' +
+            labelHtml +
+            '</div>',
+      iconSize: [60, 52],
+      iconAnchor: [30, 32],
     });
     var m = L.marker([note.lat, note.lng], {icon:icon, zIndexOffset:500});
     (function(n){
@@ -1600,6 +1628,15 @@ function openNoteDetail(id) {
   var catEl = document.getElementById('note-detail-cat');
   catEl.textContent = cat.label;
   catEl.className = 'nc-' + note.cat;
+  // Zobraz staničení v detailu
+  var kmEl = document.getElementById('note-detail-km');
+  if(kmEl) {
+    var nearest2 = nearestOnRoute(note.lat, note.lng);
+    var noteKm = fmtKm(gpxCumToRealKm(nearest2.cum));
+    note._km = noteKm;
+    kmEl.textContent = 'km ' + noteKm;
+    kmEl.style.display = 'inline-block';
+  }
   catEl.style.cssText = 'font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px;';
 
   document.getElementById('note-detail-title').textContent = '';
