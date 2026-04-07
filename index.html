@@ -570,6 +570,9 @@ textarea.note-field { min-height:80px; resize:vertical; }
 .so-tooltip .leaflet-popup-tip {
   background: rgba(15,52,96,0.97) !important;
 }
+
+.nc-6 { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; }
+.nm-6 { background: linear-gradient(135deg, #7c3aed, #a855f7) !important; }
 </style>
 </head>
 <body>
@@ -1352,7 +1355,26 @@ var NOTE_CATS = [
   {label:'✅ Hotovo',   cls:'nc-3', pin:'nm-3'},
   {label:'🔍 Kontrola', cls:'nc-4', pin:'nm-4'},
   {label:'📋 Kategorie 6', cls:'nc-5', pin:'nm-5'},
+  {label:'🏷️ Vlastní', cls:'nc-6', pin:'nm-6'},
 ];
+// Vlastní název 7. kategorie z localStorage
+(function(){
+  var saved = localStorage.getItem('cat6-label');
+  if(saved) NOTE_CATS[6].label = saved;
+})();
+
+function promptCat6() {
+  var cur = NOTE_CATS[6].label.replace(/^[^ ]+ /, '');
+  var name = prompt('Název 7. kategorie:', cur);
+  if(name !== null) setCat6Label(name);
+}
+function setCat6Label(name) {
+  var lbl = name.trim() || '🏷️ Vlastní';
+  NOTE_CATS[6].label = lbl;
+  localStorage.setItem('cat6-label', lbl);
+  // Aktualizuj zobrazení
+  document.querySelectorAll('[data-cat="6"]').forEach(function(el){ el.textContent = lbl; });
+}
 
 var notesData      = [];
 var notesLayer     = null;
@@ -1466,14 +1488,26 @@ function renderNoteMarkers() {
       'border:1px solid rgba(255,255,255,0.15);' +
       '">' + kmText + (authorText ? '<br>' + authorText : '') + '</div>';
 
+    // Název NAD ikonou
+    var nazevHtml = note.nazev ? '<div style="' +
+      'background:rgba(15,33,62,0.9);' +
+      'color:var(--accent2,#f5a623);' +
+      'font-size:10px;font-weight:800;' +
+      'padding:2px 5px;border-radius:4px;' +
+      'white-space:nowrap;margin-bottom:2px;' +
+      'box-shadow:0 1px 3px rgba(0,0,0,.5);' +
+      'border:1px solid rgba(245,166,35,0.4);' +
+      '">' + note.nazev + '</div>' : '';
+
     var icon = L.divIcon({
       className: '',
       html: '<div style="display:flex;flex-direction:column;align-items:center;">' +
+            nazevHtml +
             '<div class="note-marker-pin ' + cat.pin + '" id="npin-' + note.id + '"></div>' +
             labelHtml +
             '</div>',
-      iconSize: [60, 52],
-      iconAnchor: [30, 32],
+      iconSize: [80, 70],
+      iconAnchor: [40, note.nazev ? 46 : 32],
     });
     var m = L.marker([note.lat, note.lng], {icon:icon, zIndexOffset:500});
     (function(n){
@@ -1618,12 +1652,14 @@ function saveNote() {
   if(!author) { showToast('Zadejte jméno!', 2000); return; }
   localStorage.setItem('noteAuthor', author);
 
+  var nazev = document.getElementById('note-nazev').value.trim();
   var note = {
     id:      Date.now().toString(),
     lat:     newNoteLat,
     lng:     newNoteLng,
     cat:     newNoteCat,
     author:  author,
+    nazev:   nazev,
     text:    text,
     photos:  newNotePhotos.map(function(p){ return p.dataUrl; }),
     time:    new Date().toLocaleString('cs-CZ'),
@@ -1797,6 +1833,7 @@ function saveEditNote() {
   if(!note) return;
 
   note.author = author;
+  note.nazev  = document.getElementById('note-edit-nazev') ? document.getElementById('note-edit-nazev').value.trim() : (note.nazev || '');
   note.text   = text;
   note.cat    = window._editCat !== undefined ? window._editCat : note.cat;
   note.photos = editNotePhotos.slice();
@@ -2631,7 +2668,9 @@ function updatePrikopLabel(id, stav) {
       <div class="note-cat nc-3" data-cat="3" onclick="selectCat(3)">✅ Hotovo</div>
       <div class="note-cat nc-4" data-cat="4" onclick="selectCat(4)">🔍 Kontrola</div>
       <div class="note-cat nc-5" data-cat="5" onclick="selectCat(5)">📋 Kategorie 6</div>
+      <div class="note-cat nc-6" data-cat="6" onclick="selectCat(6)" ondblclick="promptCat6()">🏷️ Vlastní</div>
     </div>
+    <input id="note-nazev" class="note-field" type="text" placeholder="📛 Název (nepovinný)" maxlength="60" style="font-weight:600;">
     <input id="note-author" class="note-field" type="text" placeholder="Vaše jméno *" maxlength="40">
     <textarea id="note-text" class="note-field" placeholder="Text poznámky..."></textarea>
     <div id="note-photos-preview" class="note-photos-preview"></div>
@@ -2654,7 +2693,8 @@ function updatePrikopLabel(id, stav) {
     </div>
     <div id="note-detail-body">
       <div id="note-detail-meta"></div>
-      <div id="note-detail-text"></div>
+      <div id="note-detail-nazev" style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:4px;"></div>
+  <div id="note-detail-text"></div>
       <div id="note-detail-photos"></div>
     </div>
     <div id="note-detail-footer">
@@ -2685,6 +2725,7 @@ function updatePrikopLabel(id, stav) {
       <div class="note-cat nc-3" data-cat="3" onclick="selectEditCat(3)">✅ Hotovo</div>
       <div class="note-cat nc-4" data-cat="4" onclick="selectEditCat(4)">🔍 Kontrola</div>
       <div class="note-cat nc-5" data-cat="5" onclick="selectEditCat(5)">📋 Kategorie 6</div>
+      <div class="note-cat nc-6" data-cat="6" onclick="selectEditCat(6)">🏷️ Vlastní</div>
     </div>
     <input id="edit-author" class="note-field" type="text" placeholder="Vaše jméno *" maxlength="40">
     <textarea id="edit-text" class="note-field" placeholder="Text poznámky..."></textarea>
