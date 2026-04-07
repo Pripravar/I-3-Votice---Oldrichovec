@@ -610,6 +610,34 @@ textarea.note-field { min-height:80px; resize:vertical; }
     <label>📝 Poznámky</label>
     <label class="toggle"><input type="checkbox" id="lyr-notes" checked onchange="toggleNotesLayer(this.checked)"><span class="toggle-slider"></span></label>
   </div>
+  <div class="layer-row" style="padding-left:12px;">
+    <label style="font-size:12px;">↳ 📌 Obecná</label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes0" checked onchange="toggleLayer('notes0',this.checked)"><span class="toggle-slider"></span></label>
+  </div>
+  <div class="layer-row" style="padding-left:12px;">
+    <label style="font-size:12px;">↳ ℹ️ Informace</label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes1" checked onchange="toggleLayer('notes1',this.checked)"><span class="toggle-slider"></span></label>
+  </div>
+  <div class="layer-row" style="padding-left:12px;">
+    <label style="font-size:12px;">↳ ⚠️ Problém</label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes2" checked onchange="toggleLayer('notes2',this.checked)"><span class="toggle-slider"></span></label>
+  </div>
+  <div class="layer-row" style="padding-left:12px;">
+    <label style="font-size:12px;">↳ ✅ Hotovo</label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes3" checked onchange="toggleLayer('notes3',this.checked)"><span class="toggle-slider"></span></label>
+  </div>
+  <div class="layer-row" style="padding-left:12px;">
+    <label style="font-size:12px;">↳ 🔍 Kontrola</label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes4" checked onchange="toggleLayer('notes4',this.checked)"><span class="toggle-slider"></span></label>
+  </div>
+  <div class="layer-row" style="padding-left:12px;">
+    <label style="font-size:12px;">↳ 📋 Kategorie 6</label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes5" checked onchange="toggleLayer('notes5',this.checked)"><span class="toggle-slider"></span></label>
+  </div>
+  <div class="layer-row" style="padding-left:12px;">
+    <label style="font-size:12px;" id="notes-lbl-6">↳ 🏷️ Vlastní</label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes6" checked onchange="toggleLayer('notes6',this.checked)"><span class="toggle-slider"></span></label>
+  </div>
   <div class="layer-row">
     <label>🔵 Propustky (SO 102)</label>
     <label class="toggle"><input type="checkbox" id="lyr-prop" checked onchange="toggleLayer('propustky',this.checked)"><span class="toggle-slider"></span></label>
@@ -836,7 +864,7 @@ var gpsActive = false;
 var gpsCentering = false;
 var gpxCumulative = [];
 var calibSorted = null;
-var layerGroups = {trasa:null, st100:null, st20:null, pr:null, propustky:null, prikopy:null, etapy:null, etapa1:null, etapa2:null, etapa3:null, etapa4:null, so:null, so101_1:null, so101_2:null, so101_3:null, sanace:null};
+var layerGroups = {trasa:null, st100:null, st20:null, pr:null, propustky:null, prikopy:null, etapy:null, etapa1:null, etapa2:null, etapa3:null, etapa4:null, so:null, so101_1:null, so101_2:null, so101_3:null, sanace:null, notes:null, notes0:null, notes1:null, notes2:null, notes3:null, notes4:null, notes5:null, notes6:null};
 
 // ── MATH ──────────────────────────────
 function haversine(lat1,lon1,lat2,lon2) {
@@ -1343,6 +1371,13 @@ function init() {
   showToast('I/3 Votice – Oldřichovec ✓',3000);
 }
 
+
+// Aktualizuj popis 7. kategorie v layers panelu při načtení
+window.addEventListener('load', function(){
+  var lbl = NOTE_CATS[6].label;
+  var el = document.getElementById('notes-lbl-6');
+  if(el) el.textContent = '↳ ' + lbl;
+});
 window.addEventListener('load',init);
 
 // ═══════════════════════════════════════════════════════
@@ -1372,8 +1407,9 @@ function setCat6Label(name) {
   var lbl = name.trim() || '🏷️ Vlastní';
   NOTE_CATS[6].label = lbl;
   localStorage.setItem('cat6-label', lbl);
-  // Aktualizuj zobrazení
   document.querySelectorAll('[data-cat="6"]').forEach(function(el){ el.textContent = lbl; });
+  var lblEl = document.getElementById('notes-lbl-6');
+  if(lblEl) lblEl.textContent = '↳ ' + lbl;
 }
 
 var notesData      = [];
@@ -1445,67 +1481,55 @@ function deleteNote_fromFirebase(noteId, callback) {
 
 // ── Markery ────────────────────────────────────────────
 function renderNoteMarkers() {
+  // Vyčistit staré vrstvy
   if(!notesLayer) {
     notesLayer = L.layerGroup().addTo(map);
     layerGroups.notes = notesLayer;
   } else {
     notesLayer.clearLayers();
-    // Vyčistit DOM šipku
     var oldArrow = document.getElementById('note-arrow-overlay');
     if(oldArrow) oldArrow.remove();
-    // Vyčistit Leaflet pulse ring marker
-    if(selectedNoteArrow && selectedNoteArrow._map) {
-      map.removeLayer(selectedNoteArrow);
+    if(selectedNoteArrow) {
+      if(selectedNoteArrow._map) map.removeLayer(selectedNoteArrow);
+      selectedNoteArrow = null;
     }
     selectedNoteMarker = null;
-    selectedNoteArrow  = null;
     map.off('move zoom moveend', updateArrowPosition);
   }
-  notesData.forEach(function(note) {
-    var cat = NOTE_CATS[note.cat] || NOTE_CATS[0];
 
-    // Vypočítej nejbližší staničení
+  // Vytvořit/resetovat podvrstvy pro každou kategorii
+  for(var ci = 0; ci < 7; ci++) {
+    var key = 'notes' + ci;
+    if(!layerGroups[key] || !layerGroups[key]._map) {
+      layerGroups[key] = L.layerGroup().addTo(notesLayer);
+    } else {
+      layerGroups[key].clearLayers();
+    }
+  }
+
+  notesData.forEach(function(note) {
+    var catIdx = Math.min(parseInt(note.cat) || 0, 6);
+    var cat = NOTE_CATS[catIdx] || NOTE_CATS[0];
+    var subLayer = layerGroups['notes' + catIdx];
+    if(!subLayer) subLayer = notesLayer;
+
+    // Nejbližší staničení
     var nearest = nearestOnRoute(note.lat, note.lng);
     var realKm = gpxCumToRealKm(nearest.cum);
     var kmText = fmtKm(realKm);
-
-    // Uložit staničení do note objektu pro zobrazení v detailu
     note._km = kmText;
 
-    // HTML: pin + štítek se staničením a autorem pod ním
     var authorText = note.author ? note.author : '';
-    var labelHtml = '<div style="' +
-      'background:rgba(15,33,62,0.85);' +
-      'color:#fff;' +
-      'font-size:10px;' +
-      'font-weight:700;' +
-      'padding:2px 5px;' +
-      'border-radius:4px;' +
-      'white-space:nowrap;' +
-      'margin-top:2px;' +
-      'text-align:center;' +
-      'box-shadow:0 1px 3px rgba(0,0,0,.5);' +
-      'border:1px solid rgba(255,255,255,0.15);' +
-      '">' + kmText + (authorText ? '<br>' + authorText : '') + '</div>';
+    var labelHtml = '<div style="background:rgba(15,33,62,0.85);color:#fff;font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;white-space:nowrap;margin-top:2px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,0.15);">' + kmText + (authorText ? '<br>' + authorText : '') + '</div>';
 
-    // Název NAD ikonou
-    var nazevHtml = note.nazev ? '<div style="' +
-      'background:rgba(15,33,62,0.9);' +
-      'color:var(--accent2,#f5a623);' +
-      'font-size:10px;font-weight:800;' +
-      'padding:2px 5px;border-radius:4px;' +
-      'white-space:nowrap;margin-bottom:2px;' +
-      'box-shadow:0 1px 3px rgba(0,0,0,.5);' +
-      'border:1px solid rgba(245,166,35,0.4);' +
-      '">' + note.nazev + '</div>' : '';
+    var nazevHtml = note.nazev ? '<div style="background:rgba(15,33,62,0.9);color:#f5a623;font-size:10px;font-weight:800;padding:2px 5px;border-radius:4px;white-space:nowrap;margin-bottom:2px;box-shadow:0 1px 3px rgba(0,0,0,.5);border:1px solid rgba(245,166,35,0.4);">' + note.nazev + '</div>' : '';
 
     var icon = L.divIcon({
       className: '',
       html: '<div style="display:flex;flex-direction:column;align-items:center;">' +
             nazevHtml +
             '<div class="note-marker-pin ' + cat.pin + '" id="npin-' + note.id + '"></div>' +
-            labelHtml +
-            '</div>',
+            labelHtml + '</div>',
       iconSize: [80, 70],
       iconAnchor: [40, note.nazev ? 46 : 32],
     });
@@ -1517,9 +1541,10 @@ function renderNoteMarkers() {
         openNoteDetail(n.id);
       });
     })(note);
-    m.addTo(notesLayer);
+    m.addTo(subLayer);
   });
 }
+
 
 function selectNoteMarker(marker, noteId) {
   // Zrušit předchozí výběr
