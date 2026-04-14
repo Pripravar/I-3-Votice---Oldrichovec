@@ -573,6 +573,18 @@ textarea.note-field { min-height:80px; resize:vertical; }
 
 .nc-6 { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; }
 .nm-6 { background: linear-gradient(135deg, #7c3aed, #a855f7) !important; }
+
+/* GPS kompas šipka */
+.gps-wrap { position:relative; width:20px; height:20px; }
+.gps-dot-inner { width:16px; height:16px; background:var(--green); border-radius:50%; border:3px solid white; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); animation:pulse-gps 2s infinite; }
+.gps-arrow { position:absolute; top:50%; left:50%; width:0; height:0;
+  border-left:4px solid transparent; border-right:4px solid transparent;
+  border-bottom:14px solid #f5a623;
+  transform-origin:4px 14px;
+  margin-left:-4px; margin-top:-14px;
+  filter:drop-shadow(0 0 2px rgba(0,0,0,.8));
+}
+
 </style>
 </head>
 <body>
@@ -860,6 +872,7 @@ var baseLayers = {};
 var currentBasemap = 'outdoor';
 var gpsWatcher = null;
 var gpsMarker = null;
+var gpsHeading = null; // GPS kompas - směr telefonu
 var gpsActive = false;
 var gpsCentering = false;
 var gpxCumulative = [];
@@ -915,9 +928,25 @@ function realKmToLatLng(realKm) {
 function gpxCumToRealKm(gpxM) {return interp(calibSorted,'gpxM','realKm',gpxM);}
 
 function nearestOnRoute(lat,lng) {
-  var minD=Infinity,minI=0;
-  for(var i=0;i<GPX_POINTS.length;i++){var d=haversine(lat,lng,GPX_POINTS[i][0],GPX_POINTS[i][1]);if(d<minD){minD=d;minI=i;}}
-  return {idx:minI,dist:minD,cum:gpxCumulative[minI]};
+  // Interpolace na nejbližším SEGMENTU s korekcí zeměpisné šířky
+  var minD=Infinity, bestCum=0;
+  var cosLat = Math.cos(lat * Math.PI / 180);
+  for(var i=0;i<GPX_POINTS.length-1;i++){
+    var ax=GPX_POINTS[i][0],   ay=GPX_POINTS[i][1];
+    var bx=GPX_POINTS[i+1][0], by=GPX_POINTS[i+1][1];
+    // Přepočet na přibližné metry (aby t bylo korektní)
+    var dlat=bx-ax, dlng=(by-ay)*cosLat;
+    var clat=lat-ax, clng=(lng-ay)*cosLat;
+    var lenSq=dlat*dlat+dlng*dlng;
+    var t = lenSq>0 ? Math.max(0,Math.min(1,(clat*dlat+clng*dlng)/lenSq)) : 0;
+    var px=ax+t*(bx-ax), py=ay+t*(by-ay);
+    var d=haversine(lat,lng,px,py);
+    if(d<minD){
+      minD=d;
+      bestCum=gpxCumulative[i]+t*(gpxCumulative[i+1]-gpxCumulative[i]);
+    }
+  }
+  return {cum:bestCum,dist:minD};
 }
 
 function fmtKm(km) {
@@ -1038,6 +1067,8 @@ function addPRMarker(group, lat, lng, realKm, bear, pr) {
 
 function openPRPanel(realKm, pr) {
   showToast('PŘ km '+fmtKm(realKm)+' (řez č.'+pr.rezIdx+'/'+pr.total+')', 2000);
+  var prPos = realKmToLatLng(realKm);
+  if(prPos) showSelectionRing(L.latLng(prPos[0], prPos[1]));
   currentPdfSrc = pr.soubor;
 
   var panel     = document.getElementById('pdf-panel');
@@ -1173,6 +1204,8 @@ function findDocForKm(docs, realKm) {
 
 function onStaniceniClick(realKm) {
   showToast('km '+fmtKm(realKm),1500);
+  var sPos = realKmToLatLng(realKm);
+  if(sPos) showSelectionRing(L.latLng(sPos[0], sPos[1]));
   var pages = [];
   var sit = findDocForKm(DOCS_SITUACE, realKm);
   var pp  = findDocForKm(DOCS_PP, realKm);
@@ -1297,6 +1330,30 @@ function startGPS() {
     function(err){showToast('GPS chyba: '+err.message);},
     {enableHighAccuracy:true,maximumAge:2000,timeout:10000}
   );
+  startCompass();
+}
+
+function startCompass() {
+  if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then(function(state) {
+      if(state === 'granted') window.addEventListener('deviceorientation', handleOrientation, true);
+    }).catch(function(){});
+  } else {
+    window.addEventListener('deviceorientation', handleOrientation, true);
+  }
+}
+
+function handleOrientation(e) {
+  var heading = null;
+  if(e.webkitCompassHeading != null) {
+    heading = e.webkitCompassHeading; // iOS
+  } else if(e.alpha != null) {
+    heading = (360 - e.alpha) % 360; // Android
+  }
+  if(heading !== null) {
+    gpsHeading = Math.round(heading);
+    if(gpsMarker) gpsMarker.setIcon(buildGpsIcon());
+  }
 }
 
 function stopGPS() {
@@ -1307,12 +1364,23 @@ function stopGPS() {
   if(gpsWatcher!==null){navigator.geolocation.clearWatch(gpsWatcher);gpsWatcher=null;}
   if(gpsMarker){map.removeLayer(gpsMarker);gpsMarker=null;}
   document.getElementById('km-display').textContent='km –';
+  window.removeEventListener('deviceorientation', handleOrientation, true);
+  gpsHeading = null;
+}
+
+function buildGpsIcon() {
+  var arrowHtml = '';
+  if(gpsHeading !== null) {
+    arrowHtml = '<div class="gps-arrow" style="transform:rotate(' + gpsHeading + 'deg) translateY(-7px);transform-origin:center bottom;margin-left:-4px;margin-top:-14px;position:absolute;top:50%;left:50%;"></div>';
+  }
+  var html = '<div class="gps-wrap"><div class="gps-dot-inner"></div>' + arrowHtml + '</div>';
+  return L.divIcon({className:'', html:html, iconSize:[20,20], iconAnchor:[10,10]});
 }
 
 function updateGPS(lat,lng) {
-  var icon=L.divIcon({className:'',html:'<div class="gps-dot"></div>',iconSize:[16,16],iconAnchor:[8,8]});
+  var icon = buildGpsIcon();
   if(!gpsMarker){gpsMarker=L.marker([lat,lng],{icon:icon,zIndexOffset:1000}).addTo(map);}
-  else{gpsMarker.setLatLng([lat,lng]);}
+  else{gpsMarker.setLatLng([lat,lng]); gpsMarker.setIcon(icon);}
   var n=nearestOnRoute(lat,lng);
   document.getElementById('km-display').textContent='km '+fmtKm(gpxCumToRealKm(n.cum));
   if(gpsCentering) map.setView([lat,lng],map.getZoom());
@@ -1416,6 +1484,7 @@ var notesData      = [];
 var notesLayer     = null;
 var selectedNoteMarker = null;   // aktuálně vybraný marker
 var selectedNoteArrow  = null;   // šipka nad vybraným markerem
+var selectedRingMarker = null;    // obecný pulzující kroužek (propustky, PŘ, staničení)
 var newNoteLat   = null;
 var newNoteLng   = null;
 var newNoteCat   = 0;
@@ -1584,6 +1653,23 @@ function selectNoteMarker(marker, noteId) {
 
 function updateArrowPosition() {}
 
+// ── Pulzující kroužek výběru (propustky, PŘ, staničení) ──────────
+function showSelectionRing(latlng) {
+  clearSelectionRing();
+  var ringIcon = L.divIcon({
+    className: '',
+    html: '<div style="position:relative;width:36px;height:36px;"><div class="note-pulse-ring" style="width:36px;height:36px;border-color:#4fc3f7;"></div></div>',
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+  });
+  selectedRingMarker = L.marker(latlng, {icon: ringIcon, zIndexOffset: 900, interactive: false});
+  selectedRingMarker.addTo(map);
+}
+function clearSelectionRing() {
+  if(selectedRingMarker && selectedRingMarker._map) map.removeLayer(selectedRingMarker);
+  selectedRingMarker = null;
+}
+
 // ── Dlouhý stisk mapy = nová poznámka ─────────────────
 function initLongPress() {
   map.on('mousedown touchstart', function(e) {
@@ -1729,14 +1815,39 @@ function openNoteDetail(id) {
     img.src = src;
     img.style.cssText = 'cursor:zoom-in;width:120px;height:90px;object-fit:cover;border-radius:8px;';
     img.onclick = function(){ openPhotoFs(this.src); };
+    var dlBtn = document.createElement('a');
+    dlBtn.href = src;
+    dlBtn.download = 'foto_' + (pi+1) + '.jpg';
+    dlBtn.style.cssText = 'position:absolute;bottom:2px;left:2px;background:rgba(0,0,0,0.6);color:#fff;font-size:14px;border-radius:4px;padding:1px 4px;text-decoration:none;line-height:1.4;';
+    dlBtn.textContent = '⬇';
     var btn = document.createElement('button');
     btn.className = 'detail-photo-del';
     btn.textContent = '✕';
     (function(nid, pidx){ btn.onclick = function(){ deleteNotePhoto(nid, pidx); }; })(id, pi);
+    div.style.position = 'relative';
     div.appendChild(img);
+    div.appendChild(dlBtn);
     div.appendChild(btn);
     photosEl.appendChild(div);
   });
+
+  // Tlačítko "Stáhnout vše" pokud je více fotek
+  var dlAll = document.getElementById('note-detail-dl-all');
+  if(dlAll) {
+    var photos = note.photos || [];
+    if(photos.length > 1) {
+      dlAll.style.display = 'block';
+      dlAll.onclick = function() {
+        photos.forEach(function(src, i) {
+          var a = document.createElement('a');
+          a.href = src; a.download = 'foto_' + (i+1) + '.jpg';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        });
+      };
+    } else {
+      dlAll.style.display = 'none';
+    }
+  }
 
   document.getElementById('note-detail').classList.add('open');
 }
@@ -1806,6 +1917,7 @@ function editCurrentNote() {
   // Nastav hodnoty
   document.getElementById('edit-author').value = note.author || '';
   document.getElementById('edit-text').value = note.text || '';
+  document.getElementById('edit-nazev').value = note.nazev || '';
   selectEditCat(note.cat || 0);
   renderEditPhotoPreviews();
 
@@ -1858,7 +1970,7 @@ function saveEditNote() {
   if(!note) return;
 
   note.author = author;
-  note.nazev  = document.getElementById('note-edit-nazev') ? document.getElementById('note-edit-nazev').value.trim() : (note.nazev || '');
+  note.nazev  = document.getElementById('edit-nazev').value.trim();
   note.text   = text;
   note.cat    = window._editCat !== undefined ? window._editCat : note.cat;
   note.photos = editNotePhotos.slice();
@@ -2210,72 +2322,6 @@ function buildEtapy() {
   });
 }
 
-function buildEtapy() {
-  var mainGroup = L.layerGroup().addTo(map);
-  layerGroups.etapy = mainGroup;
-  var offsetBase = 28;
-
-  ETAPY.forEach(function(etapa) {
-    // Vlastní podvrstva pro každou etapu
-    var subGroup = L.layerGroup().addTo(mainGroup);
-    layerGroups['etapa'+etapa.id] = subGroup;
-
-    etapa.useky.forEach(function(u) {
-      var strany = u.strana === 'obe' ? ['vpravo','vlevo'] : [u.strana];
-      strany.forEach(function(strana, si) {
-        var pts = [];
-        var bearList = [];
-        var km = u.kmOd;
-        while(km <= u.kmDo + 0.001) {
-          var pos = realKmToLatLng(km);
-          if(pos) {
-            var gpxM = interp(calibSorted,'realKm','gpxM',km);
-            var bear = bearingAtGpxM(gpxM);
-            var perpDeg = strana === 'vpravo' ? (bear+90) : (bear-90);
-            var perpRad = perpDeg * Math.PI / 180;
-            var off = (offsetBase + si*10) / 6371000;
-            var lat = pos[0] + off*(180/Math.PI)*Math.cos(perpRad);
-            var lng = pos[1] + off*(180/Math.PI)*Math.sin(perpRad)/Math.cos(pos[0]*Math.PI/180);
-            pts.push([lat,lng]);
-            bearList.push(bear);
-          }
-          km = Math.round((km+0.020)*1000)/1000;
-        }
-        if(pts.length < 2) return;
-
-        var line = L.polyline(pts, {color:etapa.barva, weight:4, opacity:0.9});
-        line.bindPopup(
-          '<b>Etapa ' + etapa.id + '</b> // ' + etapa.tooltip +
-          '<br>km <b>' + fmtKm(u.kmOd) + ' – ' + fmtKm(u.kmDo) + '</b>',
-          {className:'etapa-tooltip', maxWidth:260}
-        );
-        line.addTo(subGroup);
-
-        var step = 14;
-        for(var pi = 1; pi < pts.length - 1; pi += step) {
-          var bear2 = bearList[pi];
-          var rot = bear2;
-          if(rot > 90 && rot < 270) rot = (rot + 180) % 360;
-          var perpDeg2 = strana === 'vpravo' ? (bear2+90) : (bear2-90);
-          var perpRad2 = perpDeg2 * Math.PI / 180;
-          var offExtra = 20 / 6371000;
-          var latL = pts[pi][0] + offExtra*(180/Math.PI)*Math.cos(perpRad2);
-          var lngL = pts[pi][1] + offExtra*(180/Math.PI)*Math.sin(perpRad2)/Math.cos(pts[pi][0]*Math.PI/180);
-          var lbl = L.divIcon({
-            className:'',
-            html:'<div style="color:'+etapa.barva+';font-size:14px;font-weight:800;white-space:nowrap;'+
-                 'text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;'+
-                 'transform:rotate('+(rot+90).toFixed(0)+'deg);transform-origin:0 50%;">'+
-                 'E'+etapa.id+' // '+(u.terminUsek||etapa.termin)+'</div>',
-            iconSize:[0,0], iconAnchor:[0,0],
-          });
-          L.marker([latL,lngL],{icon:lbl,interactive:false}).addTo(subGroup);
-        }
-      });
-    });
-  });
-}
-
 function buildPrikopy() {
   var group = L.layerGroup().addTo(map);
   layerGroups.prikopy = group;
@@ -2375,6 +2421,7 @@ function buildPropustky() {
 }
 
 function openPropPanel(prop) {
+  var pPos = realKmToLatLng(prop.km); if(pPos) showSelectionRing(L.latLng(pPos[0],pPos[1]));
   currentPropId = prop.id;
   currentPropSrc = prop.soubor;
   propPages = [
@@ -2722,7 +2769,8 @@ function updatePrikopLabel(id, stav) {
   <div id="note-detail-text"></div>
       <div id="note-detail-photos"></div>
     </div>
-    <div id="note-detail-footer">
+    <button id="note-detail-dl-all" onclick="" style="display:none;margin:0 14px 8px;background:var(--panel2);border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:7px;font-size:13px;cursor:pointer;width:calc(100% - 28px);">⬇️ Stáhnout všechny fotky</button>
+  <div id="note-detail-footer">
       <button class="note-close-btn" onclick="closeNoteDetail()">Zavřít</button>
       <button class="note-edit-btn" onclick="editCurrentNote()">✏️ Upravit</button>
       <button class="note-del-btn" onclick="deleteCurrentNote()">🗑️ Smazat</button>
@@ -2743,6 +2791,7 @@ function updatePrikopLabel(id, stav) {
 <div id="note-edit-modal">
   <div id="note-edit-box">
     <h3>✏️ Upravit poznámku</h3>
+    <input id="edit-nazev" class="note-field" type="text" placeholder="📛 Název (nepovinný)" maxlength="60" style="font-weight:600;">
     <div class="note-cats" id="edit-cats">
       <div class="note-cat nc-0" data-cat="0" onclick="selectEditCat(0)">📌 Obecná</div>
       <div class="note-cat nc-1" data-cat="1" onclick="selectEditCat(1)">ℹ️ Informace</div>
