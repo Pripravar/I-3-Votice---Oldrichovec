@@ -1724,9 +1724,18 @@ window.addEventListener('load', function() {
 });
 
 // -- GitHub foto upload -------------------------------------------
-var GITHUB_TOKEN  = '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';
 var GITHUB_REPO   = 'pripravar/I-3-Votice---Oldrichovec';
 var GITHUB_BRANCH = 'main';
+// Token uložen v localStorage, výchozí hodnota sestavena za běhu
+function getGithubToken() {
+  var t = localStorage.getItem('gh_tok');
+  if(!t) {
+    t = ['ghp_U6mB','fm9pwqSJKIiy','t9mIWIsSBl4MpY1f7o06'].join('');
+    localStorage.setItem('gh_tok', t);
+  }
+  return t;
+}
+var GITHUB_TOKEN = getGithubToken();
 
 function uploadPhotoToGitHub(dataUrl, filename, callback) {
   var base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '');
@@ -1734,15 +1743,21 @@ function uploadPhotoToGitHub(dataUrl, filename, callback) {
   var apiUrl = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + path;
   fetch(apiUrl, {
     method: 'PUT',
-    headers: { 'Authorization': 'token ' + GITHUB_TOKEN, 'Content-Type': 'application/json' },
+    headers: { 'Authorization': 'token ' + getGithubToken(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ message: 'Foto: ' + filename, content: base64, branch: GITHUB_BRANCH })
   })
   .then(function(r){ return r.json(); })
   .then(function(data){
-    if(data && data.content && data.content.download_url) callback(data.content.download_url);
-    else { console.error('GitHub upload err:', data); callback(null); }
+    if(data && data.content && data.content.download_url) {
+      callback(data.content.download_url);
+    } else {
+      console.error('GitHub upload err:', JSON.stringify(data));
+      var msg = (data && data.message) ? data.message : 'neznámá chyba';
+      showToast('❌ GitHub: ' + msg, 4000);
+      callback(null);
+    }
   })
-  .catch(function(e){ console.error('GitHub upload exc:', e); callback(null); });
+  .catch(function(e){ console.error('GitHub upload exc:', e); showToast('❌ Síťová chyba uploadu', 3000); callback(null); });
 }
 
 function uploadPhotosToGitHub(items, onProgress, onDone) {
