@@ -1791,18 +1791,18 @@ function openNoteDetail(id) {
   catEl.textContent = cat.label;
   catEl.className = 'nc-' + note.cat;
   // Zobraz staničení v detailu
-  var kmEl = document.getElementById('note-detail-km');
-  if(kmEl) {
-    var nearest2 = nearestOnRoute(note.lat, note.lng);
-    var noteKm = fmtKm(gpxCumToRealKm(nearest2.cum));
-    note._km = noteKm;
-    kmEl.textContent = 'km ' + noteKm;
-    kmEl.style.display = 'inline-block';
-  }
+  // Vždy vypočítat km (note-detail-km element neexistuje, ale _km potřebujeme)
+  var nearest2 = nearestOnRoute(note.lat, note.lng);
+  var noteKm = fmtKm(gpxCumToRealKm(nearest2.cum));
+  note._km = noteKm;
   catEl.style.cssText = 'font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px;';
 
-  document.getElementById('note-detail-title').textContent = '';
-  document.getElementById('note-detail-meta').textContent = '👤 ' + note.author + '   🕐 ' + note.time;
+  document.getElementById('note-detail-title').textContent = note.nazev || '';
+  var nazevEl2 = document.getElementById('note-detail-nazev');
+  if(nazevEl2) nazevEl2.textContent = note.nazev || '';
+  var kmStr = '';
+  if(note._km) kmStr = '   📍 ' + note._km;
+  document.getElementById('note-detail-meta').textContent = '👤 ' + note.author + '   🕐 ' + note.time + kmStr;
   document.getElementById('note-detail-text').textContent = note.text || '(bez textu)';
 
   // Fotky
@@ -1976,8 +1976,12 @@ function saveEditNote() {
   note.photos = editNotePhotos.slice();
   note.edited = new Date().toLocaleString('cs-CZ');
 
+  var savedId = note.id;
   closeEditModal();
-  saveNote_toFirebase(note, function(){ openNoteDetail(note.id); });
+  saveNote_toFirebase(note, function(){
+    // Počkat až Firebase listener aktualizuje notesData, pak otevřít detail
+    setTimeout(function(){ openNoteDetail(savedId); }, 400);
+  });
 }
 
 // Přidat foto v editaci
@@ -2764,9 +2768,9 @@ function updatePrikopLabel(id, stav) {
       <button id="note-detail-close" onclick="closeNoteDetail()">✕</button>
     </div>
     <div id="note-detail-body">
-      <div id="note-detail-meta"></div>
-      <div id="note-detail-nazev" style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:4px;"></div>
-  <div id="note-detail-text"></div>
+      <div id="note-detail-nazev" style="font-size:14px;font-weight:800;color:var(--accent2);margin-bottom:4px;"></div>
+      <div id="note-detail-meta" style="font-size:11px;color:var(--text2);margin-bottom:8px;"></div>
+      <div id="note-detail-text"></div>
       <div id="note-detail-photos"></div>
     </div>
     <button id="note-detail-dl-all" onclick="" style="display:none;margin:0 14px 8px;background:var(--panel2);border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:7px;font-size:13px;cursor:pointer;width:calc(100% - 28px);">⬇️ Stáhnout všechny fotky</button>
