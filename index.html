@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
@@ -20,177 +19,178 @@
 html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; }
 body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; height:100vh; overflow:hidden; display:flex; flex-direction:column; }
 
-#header { background:var(–panel); border-bottom:1px solid var(–border); padding:10px 14px; display:flex; align-items:center; gap:10px; z-index:1000; flex-shrink:0; }
+#header { background:var(--panel); border-bottom:1px solid var(--border); padding:10px 14px; display:flex; align-items:center; gap:10px; z-index:1000; flex-shrink:0; }
 #header h1 { font-size:15px; font-weight:700; flex:1; }
-#header h1 span { color:var(–accent); }
-#km-display { background:var(–panel2); border:1px solid var(–accent); border-radius:8px; padding:4px 10px; font-size:13px; font-weight:700; color:var(–accent2); min-width:90px; text-align:center; }
-#btn-layers { background:var(–panel2); border:1px solid var(–border); border-radius:8px; color:var(–text); padding:6px 10px; font-size:13px; cursor:pointer; white-space:nowrap; }
+#header h1 span { color:var(--accent); }
+#km-display { background:var(--panel2); border:1px solid var(--accent); border-radius:8px; padding:4px 10px; font-size:13px; font-weight:700; color:var(--accent2); min-width:90px; text-align:center; }
+#btn-layers { background:var(--panel2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:6px 10px; font-size:13px; cursor:pointer; white-space:nowrap; }
 
 #map { flex:1; width:100%; z-index:1; }
 
-#layers-panel { position:fixed; top:56px; right:0; width:250px; max-height:calc(100vh - 70px); overflow-y:auto; background:var(–panel); border-left:1px solid var(–border); border-bottom:1px solid var(–border); border-radius:0 0 0 var(–radius); z-index:2000; display:none; padding:12px; -webkit-overflow-scrolling:touch; }
+#layers-panel { position:fixed; top:56px; right:0; width:250px; max-height:calc(100vh - 70px); overflow-y:auto; background:var(--panel); border-left:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:0 0 0 var(--radius); z-index:2000; display:none; padding:12px; -webkit-overflow-scrolling:touch; }
 #layers-panel.open { display:block; }
-#layers-panel h3 { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(–text2); margin-bottom:8px; margin-top:10px; }
+#layers-panel h3 { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--text2); margin-bottom:8px; margin-top:10px; }
 #layers-panel h3:first-child { margin-top:0; }
-.layer-row { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(–border); font-size:14px; }
+.layer-row { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--border); font-size:14px; }
 .layer-row:last-child { border-bottom:none; }
 #basemap-row { display:flex; gap:5px; margin-bottom:4px; }
-.bm-btn { flex:1; background:var(–panel2); border:1px solid var(–border); border-radius:6px; color:var(–text2); font-size:10px; padding:5px 2px; cursor:pointer; text-align:center; transition:all .15s; }
-.bm-btn.active { border-color:var(–accent); color:var(–accent); background:rgba(233,69,96,0.1); }
+.bm-btn { flex:1; background:var(--panel2); border:1px solid var(--border); border-radius:6px; color:var(--text2); font-size:10px; padding:5px 2px; cursor:pointer; text-align:center; transition:all .15s; }
+.bm-btn.active { border-color:var(--accent); color:var(--accent); background:rgba(233,69,96,0.1); }
 .toggle { position:relative; width:38px; height:20px; flex-shrink:0; }
 .toggle input { opacity:0; width:0; height:0; }
 .toggle-slider { position:absolute; inset:0; background:#333; border-radius:20px; transition:.2s; cursor:pointer; }
-.toggle-slider:before { content:’’; position:absolute; width:14px; height:14px; left:3px; top:3px; background:white; border-radius:50%; transition:.2s; }
-.toggle input:checked + .toggle-slider { background:var(–accent); }
+.toggle-slider:before { content:''; position:absolute; width:14px; height:14px; left:3px; top:3px; background:white; border-radius:50%; transition:.2s; }
+.toggle input:checked + .toggle-slider { background:var(--accent); }
 .toggle input:checked + .toggle-slider:before { transform:translateX(18px); }
 
-#btn-gps { position:fixed; bottom:24px; right:16px; width:48px; height:48px; border-radius:50%; background:var(–panel2); border:2px solid var(–border); color:var(–text); font-size:22px; cursor:pointer; z-index:1500; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(0,0,0,.4); transition:all .2s; }
-#btn-gps.active { border-color:var(–green); color:var(–green); box-shadow:0 0 16px rgba(72,187,120,.4); }
+#btn-gps { position:fixed; bottom:24px; right:16px; width:48px; height:48px; border-radius:50%; background:var(--panel2); border:2px solid var(--border); color:var(--text); font-size:22px; cursor:pointer; z-index:1500; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(0,0,0,.4); transition:all .2s; }
+#btn-gps.active { border-color:var(--green); color:var(--green); box-shadow:0 0 16px rgba(72,187,120,.4); }
 
-#toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px); background:var(–panel2); border:1px solid var(–border); border-radius:8px; padding:8px 16px; font-size:13px; z-index:3000; opacity:0; transition:all .3s; white-space:nowrap; pointer-events:none; }
+#toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:8px 16px; font-size:13px; z-index:3000; opacity:0; transition:all .3s; white-space:nowrap; pointer-events:none; }
 #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
 /* ══ STANIČENÍ ══
-Logika: iconAnchor=[šířka, výška] = pravý dolní roh ikony sedí přesně na souřadnici.
-Wrapper je flexbox s align-items:flex-end → čárka vpravo (= na ose).
-Text je nad čárkou, zarovnaný doprava (= vlevo od osy v mapě).
+   Logika: iconAnchor=[šířka, výška] = pravý dolní roh ikony sedí přesně na souřadnici.
+   Wrapper je flexbox s align-items:flex-end → čárka vpravo (= na ose).
+   Text je nad čárkou, zarovnaný doprava (= vlevo od osy v mapě).
 */
 .staniceni-100, .staniceni-20 {
-background: transparent !important;
-border: none !important;
-overflow: visible !important;
+  background: transparent !important;
+  border: none !important;
+  overflow: visible !important;
 }
 .st100-wrap {
-display: flex;
-flex-direction: column;
-align-items: flex-end;
-cursor: pointer;
-user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  cursor: pointer;
+  user-select: none;
 }
 .st100-label {
-color: #f5a623;
-font-size: 26px;
-font-weight: 900;
-white-space: nowrap;
-line-height: 1;
-text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 0 10px #000;
-transition: color .15s;
+  color: #f5a623;
+  font-size: 26px;
+  font-weight: 900;
+  white-space: nowrap;
+  line-height: 1;
+  text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 0 10px #000;
+  transition: color .15s;
 }
 .st100-line {
-width: 2px;
-height: 16px;
-background: #f5a623;
-margin-top: 3px;
-flex-shrink: 0;
-box-shadow: 0 0 4px #000;
+  width: 2px;
+  height: 16px;
+  background: #f5a623;
+  margin-top: 3px;
+  flex-shrink: 0;
+  box-shadow: 0 0 4px #000;
 }
 .st100-wrap:hover .st100-label { color: #ffd166; }
 
 .st20-wrap {
-display: flex;
-flex-direction: column;
-align-items: flex-end;
-cursor: pointer;
-user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  cursor: pointer;
+  user-select: none;
 }
 .st20-label {
-color: #bbb;
-font-size: 18px;
-font-weight: 700;
-white-space: nowrap;
-line-height: 1;
-text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+  color: #bbb;
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 .st20-line {
-width: 1px;
-height: 10px;
-background: #999;
-margin-top: 2px;
-flex-shrink: 0;
+  width: 1px;
+  height: 10px;
+  background: #999;
+  margin-top: 2px;
+  flex-shrink: 0;
 }
 .st20-wrap:hover .st20-label { color: #ddd; }
 
-.gps-dot { width:16px; height:16px; background:var(–green); border-radius:50%; border:3px solid white; }
+.gps-dot { width:16px; height:16px; background:var(--green); border-radius:50%; border:3px solid white; }
 @keyframes pulse-gps {
-0%   { box-shadow:0 0 0 0   rgba(72,187,120,.6); }
-70%  { box-shadow:0 0 0 14px rgba(72,187,120,0); }
-100% { box-shadow:0 0 0 0   rgba(72,187,120,0); }
+  0%   { box-shadow:0 0 0 0   rgba(72,187,120,.6); }
+  70%  { box-shadow:0 0 0 14px rgba(72,187,120,0); }
+  100% { box-shadow:0 0 0 0   rgba(72,187,120,0); }
 }
 .gps-dot { animation:pulse-gps 2s infinite; }
 
-#pdf-panel { position:fixed; bottom:0; left:0; right:0; height:55vh; background:var(–panel); border-top:2px solid var(–accent); z-index:2500; display:none; flex-direction:column; }
+#pdf-panel { position:fixed; bottom:0; left:0; right:0; height:55vh; background:var(--panel); border-top:2px solid var(--accent); z-index:2500; display:none; flex-direction:column; }
 #pdf-panel.open { display:flex; }
 #pdf-panel.fullscreen { height:100vh; top:0; }
-#pdf-header { display:flex; align-items:center; padding:6px 10px; background:var(–panel2); gap:6px; flex-shrink:0; }
-#pdf-title { flex:1; font-size:12px; font-weight:600; color:var(–accent2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-#pdf-counter { font-size:11px; color:var(–text2); white-space:nowrap; }
-#btn-pdf-close,#btn-pdf-fs { background:none; border:none; color:var(–text2); font-size:18px; cursor:pointer; padding:2px 6px; }
-#btn-pdf-close:hover,#btn-pdf-fs:hover { color:var(–text); }
-#btn-pdf-prev,#btn-pdf-next { background:var(–panel); border:1px solid var(–border); border-radius:6px; color:var(–text); font-size:22px; cursor:pointer; padding:0 8px; line-height:1.4; flex-shrink:0; }
-#btn-pdf-prev:hover,#btn-pdf-next:hover { background:var(–panel2); }
+#pdf-header { display:flex; align-items:center; padding:6px 10px; background:var(--panel2); gap:6px; flex-shrink:0; }
+#pdf-title { flex:1; font-size:12px; font-weight:600; color:var(--accent2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#pdf-counter { font-size:11px; color:var(--text2); white-space:nowrap; }
+#btn-pdf-close,#btn-pdf-fs { background:none; border:none; color:var(--text2); font-size:18px; cursor:pointer; padding:2px 6px; }
+#btn-pdf-close:hover,#btn-pdf-fs:hover { color:var(--text); }
+#btn-pdf-prev,#btn-pdf-next { background:var(--panel); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:22px; cursor:pointer; padding:0 8px; line-height:1.4; flex-shrink:0; }
+#btn-pdf-prev:hover,#btn-pdf-next:hover { background:var(--panel2); }
 #btn-pdf-prev:disabled,#btn-pdf-next:disabled { opacity:0.3; cursor:default; }
-#pdf-tabs { display:flex; gap:4px; padding:6px 10px; background:var(–bg); flex-shrink:0; overflow-x:auto; }
-.pdf-tab { background:var(–panel2); border:1px solid var(–border); border-radius:6px; color:var(–text2); font-size:11px; padding:4px 10px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
-.pdf-tab.active { border-color:var(–accent); color:var(–accent); background:rgba(233,69,96,0.12); }
+#pdf-tabs { display:flex; gap:4px; padding:6px 10px; background:var(--bg); flex-shrink:0; overflow-x:auto; }
+.pdf-tab { background:var(--panel2); border:1px solid var(--border); border-radius:6px; color:var(--text2); font-size:11px; padding:4px 10px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+.pdf-tab.active { border-color:var(--accent); color:var(--accent); background:rgba(233,69,96,0.12); }
 #pdf-frame { flex:1; border:none; width:100%; background:#222; }
-#pdf-nosit { flex:1; display:none; align-items:center; justify-content:center; color:var(–text2); font-size:14px; flex-direction:column; gap:8px; text-align:center; padding:20px; }
+#pdf-nosit { flex:1; display:none; align-items:center; justify-content:center; color:var(--text2); font-size:14px; flex-direction:column; gap:8px; text-align:center; padding:20px; }
 #pdf-nosit span { font-size:36px; }
 
-.leaflet-popup-content-wrapper { background:var(–panel2) !important; color:var(–text) !important; border:1px solid var(–border) !important; border-radius:var(–radius) !important; }
-.leaflet-popup-tip { background:var(–panel2) !important; }
+.leaflet-popup-content-wrapper { background:var(--panel2) !important; color:var(--text) !important; border:1px solid var(--border) !important; border-radius:var(--radius) !important; }
+.leaflet-popup-tip { background:var(--panel2) !important; }
 .leaflet-popup-content { font-size:13px; line-height:1.6; }
 
 /* Pracovní příčné řezy marker */
 .pr-marker {
-background: transparent !important;
-border: none !important;
-overflow: visible !important;
+  background: transparent !important;
+  border: none !important;
+  overflow: visible !important;
 }
 .pr-wrap {
-display: flex;
-flex-direction: column;
-align-items: flex-start;
-cursor: pointer;
-user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  cursor: pointer;
+  user-select: none;
 }
 .pr-label {
-color: #4fc3f7;
-font-size: 13px;
-font-weight: 800;
-white-space: nowrap;
-line-height: 1;
-text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-background: rgba(0,30,60,0.6);
-border: 1px solid #4fc3f7;
-border-radius: 3px;
-padding: 1px 4px;
+  color: #4fc3f7;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  line-height: 1;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+  background: rgba(0,30,60,0.6);
+  border: 1px solid #4fc3f7;
+  border-radius: 3px;
+  padding: 1px 4px;
 }
 .pr-line {
-width: 1px;
-height: 8px;
-background: #4fc3f7;
-margin-top: 1px;
-align-self: flex-end;
+  width: 1px;
+  height: 8px;
+  background: #4fc3f7;
+  margin-top: 1px;
+  align-self: flex-end;
 }
+
 
 /* ══ POZNÁMKY ══ */
 #note-modal {
-position:fixed; inset:0; background:rgba(0,0,0,.7);
-z-index:4000; display:none; align-items:flex-end; justify-content:center;
+  position:fixed; inset:0; background:rgba(0,0,0,.7);
+  z-index:4000; display:none; align-items:flex-end; justify-content:center;
 }
 #note-modal.open { display:flex; }
 #note-box {
-background:var(–panel); width:100%; max-width:520px;
-border-radius:16px 16px 0 0; padding:16px;
-max-height:90vh; overflow-y:auto;
-border-top:2px solid var(–accent);
+  background:var(--panel); width:100%; max-width:520px;
+  border-radius:16px 16px 0 0; padding:16px;
+  max-height:90vh; overflow-y:auto;
+  border-top:2px solid var(--accent);
 }
-#note-box h3 { font-size:15px; font-weight:700; margin-bottom:12px; color:var(–accent2); }
+#note-box h3 { font-size:15px; font-weight:700; margin-bottom:12px; color:var(--accent2); }
 
 .note-cats { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
 .note-cat {
-padding:5px 10px; border-radius:20px; font-size:12px; font-weight:700;
-cursor:pointer; border:2px solid transparent; opacity:.6; transition:.15s;
+  padding:5px 10px; border-radius:20px; font-size:12px; font-weight:700;
+  cursor:pointer; border:2px solid transparent; opacity:.6; transition:.15s;
 }
 .note-cat.sel { opacity:1; border-color:#fff; }
 .nc-0  { background:#546e7a; color:#fff; }
@@ -200,36 +200,36 @@ cursor:pointer; border:2px solid transparent; opacity:.6; transition:.15s;
 .nc-4  { background:#2e7d32; color:#fff; }
 .nc-5  { background:#e65100; color:#fff; }
 
-.note-field { width:100%; background:var(–panel2); border:1px solid var(–border);
-border-radius:8px; color:var(–text); padding:8px 10px; font-size:14px;
-margin-bottom:10px; box-sizing:border-box; font-family:inherit; }
-.note-field:focus { outline:none; border-color:var(–accent); }
+.note-field { width:100%; background:var(--panel2); border:1px solid var(--border);
+  border-radius:8px; color:var(--text); padding:8px 10px; font-size:14px;
+  margin-bottom:10px; box-sizing:border-box; font-family:inherit; }
+.note-field:focus { outline:none; border-color:var(--accent); }
 textarea.note-field { min-height:80px; resize:vertical; }
 
 .note-photos-preview { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
 .note-thumb { position:relative; width:70px; height:70px; }
 .note-thumb img { width:100%; height:100%; object-fit:cover; border-radius:6px; }
 .note-thumb-del {
-position:absolute; top:-4px; right:-4px; width:18px; height:18px;
-background:var(–accent); color:#fff; border:none; border-radius:50%;
-font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  position:absolute; top:-4px; right:-4px; width:18px; height:18px;
+  background:var(--accent); color:#fff; border:none; border-radius:50%;
+  font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center;
 }
 
 .note-btns { display:flex; gap:8px; margin-top:4px; }
 .note-btn {
-flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer;
-font-size:14px; font-weight:700;
+  flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer;
+  font-size:14px; font-weight:700;
 }
-.note-btn-save { background:var(–accent); color:#fff; }
-.note-btn-cancel { background:var(–panel2); color:var(–text2); border:1px solid var(–border); }
-.note-btn-addphoto { background:var(–panel2); color:var(–text2); border:1px solid var(–border); flex:0 0 auto; padding:10px 14px; }
+.note-btn-save { background:var(--accent); color:#fff; }
+.note-btn-cancel { background:var(--panel2); color:var(--text2); border:1px solid var(--border); }
+.note-btn-addphoto { background:var(--panel2); color:var(--text2); border:1px solid var(--border); flex:0 0 auto; padding:10px 14px; }
 
 /* Markery poznámek */
 .note-marker-pin {
-width:30px; height:30px; border-radius:50% 50% 50% 0;
-transform:rotate(-45deg); border:2px solid rgba(255,255,255,.8);
-box-shadow:0 2px 6px rgba(0,0,0,.5); cursor:pointer;
-transition:transform .15s;
+  width:30px; height:30px; border-radius:50% 50% 50% 0;
+  transform:rotate(-45deg); border:2px solid rgba(255,255,255,.8);
+  box-shadow:0 2px 6px rgba(0,0,0,.5); cursor:pointer;
+  transition:transform .15s;
 }
 .note-marker-pin:hover { transform:rotate(-45deg) scale(1.2); }
 .nm-0 { background:#546e7a; }
@@ -241,36 +241,36 @@ transition:transform .15s;
 
 /* Detail modal */
 #note-detail {
-position:fixed; inset:0; background:rgba(0,0,0,.75);
-z-index:4000; display:none; align-items:center; justify-content:center;
-padding:16px;
+  position:fixed; inset:0; background:rgba(0,0,0,.75);
+  z-index:4000; display:none; align-items:center; justify-content:center;
+  padding:16px;
 }
 #note-detail.open { display:flex; }
 #note-detail-box {
-background:var(–panel); width:100%; max-width:480px;
-border-radius:12px; overflow:hidden; max-height:85vh; display:flex; flex-direction:column;
+  background:var(--panel); width:100%; max-width:480px;
+  border-radius:12px; overflow:hidden; max-height:85vh; display:flex; flex-direction:column;
 }
 #note-detail-header {
-padding:12px 14px; display:flex; align-items:center; gap:8px;
-border-bottom:1px solid var(–border);
+  padding:12px 14px; display:flex; align-items:center; gap:8px;
+  border-bottom:1px solid var(--border);
 }
 #note-detail-cat { font-size:11px; font-weight:700; padding:3px 8px; border-radius:10px; }
 #note-detail-title { flex:1; font-size:14px; font-weight:700; }
-#note-detail-close { background:none; border:none; color:var(–text2); font-size:20px; cursor:pointer; }
+#note-detail-close { background:none; border:none; color:var(--text2); font-size:20px; cursor:pointer; }
 #note-detail-body { padding:14px; overflow-y:auto; flex:1; }
-#note-detail-meta { font-size:11px; color:var(–text2); margin-bottom:8px; }
+#note-detail-meta { font-size:11px; color:var(--text2); margin-bottom:8px; }
 #note-detail-text { font-size:14px; line-height:1.6; margin-bottom:12px; white-space:pre-wrap; }
 #note-detail-photos { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
 .detail-photo { position:relative; }
 .detail-photo img { width:120px; height:90px; object-fit:cover; border-radius:8px; cursor:zoom-in; }
 .detail-photo-del {
-position:absolute; top:4px; right:4px; background:rgba(233,69,96,.9);
-color:#fff; border:none; border-radius:50%; width:22px; height:22px;
-font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  position:absolute; top:4px; right:4px; background:rgba(233,69,96,.9);
+  color:#fff; border:none; border-radius:50%; width:22px; height:22px;
+  font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center;
 }
-#note-detail-footer { padding:10px 14px; border-top:1px solid var(–border); display:flex; gap:8px; }
-.note-del-btn { flex:1; background:var(–accent); color:#fff; border:none; border-radius:8px; padding:9px; font-size:13px; font-weight:700; cursor:pointer; }
-.note-close-btn { flex:1; background:var(–panel2); color:var(–text2); border:1px solid var(–border); border-radius:8px; padding:9px; font-size:13px; cursor:pointer; }
+#note-detail-footer { padding:10px 14px; border-top:1px solid var(--border); display:flex; gap:8px; }
+.note-del-btn { flex:1; background:var(--accent); color:#fff; border:none; border-radius:8px; padding:9px; font-size:13px; font-weight:700; cursor:pointer; }
+.note-close-btn { flex:1; background:var(--panel2); color:var(--text2); border:1px solid var(--border); border-radius:8px; padding:9px; font-size:13px; cursor:pointer; }
 .note-edit-btn { flex:1; background:#1565c0; color:#fff; border:none; border-radius:8px; padding:9px; font-size:13px; font-weight:700; cursor:pointer; }
 
 /* Fullscreen foto */
@@ -280,163 +280,169 @@ font-size:12px; cursor:pointer; display:flex; align-items:center; justify-conten
 
 /* Sync indikátor */
 #sync-indicator {
-position:fixed; bottom:80px; left:12px; background:var(–panel2);
-border:1px solid var(–border); border-radius:8px; padding:6px 10px;
-font-size:11px; color:var(–text2); z-index:1200; display:none;
+  position:fixed; bottom:80px; left:12px; background:var(--panel2);
+  border:1px solid var(--border); border-radius:8px; padding:6px 10px;
+  font-size:11px; color:var(--text2); z-index:1200; display:none;
 }
 #sync-indicator.show { display:block; }
 
+
 #note-edit-modal {
-position:fixed; inset:0; background:rgba(0,0,0,.7);
-z-index:4500; display:none; align-items:flex-end; justify-content:center;
+  position:fixed; inset:0; background:rgba(0,0,0,.7);
+  z-index:4500; display:none; align-items:flex-end; justify-content:center;
 }
 #note-edit-modal.open { display:flex; }
 #note-edit-box {
-background:var(–panel); width:100%; max-width:520px;
-border-radius:16px 16px 0 0; padding:16px;
-max-height:90vh; overflow-y:auto;
-border-top:2px solid #1565c0;
+  background:var(--panel); width:100%; max-width:520px;
+  border-radius:16px 16px 0 0; padding:16px;
+  max-height:90vh; overflow-y:auto;
+  border-top:2px solid #1565c0;
 }
 #note-edit-box h3 { font-size:15px; font-weight:700; margin-bottom:12px; color:#4fc3f7; }
+
 
 #pdf-panel.open #pdf-frame-wrap { cursor:default; }
 #pdf-frame { cursor:default; }
 
+
 /* ── Pulzující vybraný marker ── */
 @keyframes pulse-marker {
-0%   { box-shadow: 0 0 0 0 rgba(233,69,96,0.7), 0 2px 6px rgba(0,0,0,.5); }
-70%  { box-shadow: 0 0 0 12px rgba(233,69,96,0), 0 2px 6px rgba(0,0,0,.5); }
-100% { box-shadow: 0 0 0 0 rgba(233,69,96,0), 0 2px 6px rgba(0,0,0,.5); }
+  0%   { box-shadow: 0 0 0 0 rgba(233,69,96,0.7), 0 2px 6px rgba(0,0,0,.5); }
+  70%  { box-shadow: 0 0 0 12px rgba(233,69,96,0), 0 2px 6px rgba(0,0,0,.5); }
+  100% { box-shadow: 0 0 0 0 rgba(233,69,96,0), 0 2px 6px rgba(0,0,0,.5); }
 }
 @keyframes pulse-arrow {
-0%,100% { transform: translateX(-50%) translateY(0); opacity:1; }
-50%      { transform: translateX(-50%) translateY(-4px); opacity:0.8; }
+  0%,100% { transform: translateX(-50%) translateY(0); opacity:1; }
+  50%      { transform: translateX(-50%) translateY(-4px); opacity:0.8; }
 }
 .note-marker-pin.selected {
-animation: pulse-marker 1.2s infinite !important;
-border-color: #fff !important;
-border-width: 3px !important;
-z-index: 1000;
-transform: rotate(-45deg) scale(1.15) !important;
+  animation: pulse-marker 1.2s infinite !important;
+  border-color: #fff !important;
+  border-width: 3px !important;
+  z-index: 1000;
+  transform: rotate(-45deg) scale(1.15) !important;
 }
 .note-arrow-wrap {
-position: absolute;
-left: 50%;
-top: -44px;
-transform: translateX(-50%);
-animation: pulse-arrow 1s infinite;
-z-index: 1001;
+  position: absolute;
+  left: 50%;
+  top: -44px;
+  transform: translateX(-50%);
+  animation: pulse-arrow 1s infinite;
+  z-index: 1001;
 }
 .note-arrow {
-width: 0; height: 0;
-border-left: 14px solid transparent;
-border-right: 14px solid transparent;
-border-top: 22px solid #f5a623;
-filter: drop-shadow(0 0 3px rgba(233,69,96,0.8));
-position: relative;
+  width: 0; height: 0;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-top: 22px solid #f5a623;
+  filter: drop-shadow(0 0 3px rgba(233,69,96,0.8));
+  position: relative;
 }
 .note-arrow::before {
-content: ‘’;
-position: absolute;
-left: -16px; top: -26px;
-width: 0; height: 0;
-border-left: 16px solid transparent;
-border-right: 16px solid transparent;
-border-top: 25px solid #e94560;
+  content: '';
+  position: absolute;
+  left: -16px; top: -26px;
+  width: 0; height: 0;
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-top: 25px solid #e94560;
 }
+
 
 /* ── Propustky ── */
 .prop-marker {
-background: transparent !important;
-border: none !important;
-overflow: visible !important;
+  background: transparent !important;
+  border: none !important;
+  overflow: visible !important;
 }
 .prop-pin {
-width: 28px; height: 28px;
-background: #1565c0;
-border: 3px solid #fff;
-border-radius: 50%;
-display: flex; align-items: center; justify-content: center;
-color: #fff; font-size: 9px; font-weight: 800;
-box-shadow: 0 2px 6px rgba(0,0,0,.5);
-cursor: pointer;
-transition: transform .15s;
-white-space: nowrap;
+  width: 28px; height: 28px;
+  background: #1565c0;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 9px; font-weight: 800;
+  box-shadow: 0 2px 6px rgba(0,0,0,.5);
+  cursor: pointer;
+  transition: transform .15s;
+  white-space: nowrap;
 }
 .prop-pin:hover { transform: scale(1.2); }
 
 /* Propustek detail panel */
 #prop-panel {
-position: fixed;
-bottom: 0; left: 0; right: 0;
-height: 60vh;
-background: var(–panel);
-border-top: 2px solid #1565c0;
-z-index: 2600;
-display: none;
-flex-direction: column;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 60vh;
+  background: var(--panel);
+  border-top: 2px solid #1565c0;
+  z-index: 2600;
+  display: none;
+  flex-direction: column;
 }
 #prop-panel.open { display: flex; }
 #prop-panel.fullscreen { height: 100vh; top: 0; }
 #prop-header {
-display: flex; align-items: center;
-padding: 8px 10px; background: var(–panel2);
-gap: 6px; flex-shrink: 0;
+  display: flex; align-items: center;
+  padding: 8px 10px; background: var(--panel2);
+  gap: 6px; flex-shrink: 0;
 }
 #prop-title { flex:1; font-size:13px; font-weight:700; color:#4fc3f7; }
 #btn-prop-fs, #btn-prop-close {
-background:none; border:none; color:var(–text2); font-size:18px; cursor:pointer; padding:4px 6px;
+  background:none; border:none; color:var(--text2); font-size:18px; cursor:pointer; padding:4px 6px;
 }
-#prop-tabs { display:flex; gap:4px; padding:6px 10px; background:var(–bg); flex-shrink:0; overflow-x:auto; }
+#prop-tabs { display:flex; gap:4px; padding:6px 10px; background:var(--bg); flex-shrink:0; overflow-x:auto; }
 #prop-content { flex:1; display:flex; flex-direction:column; min-height:0; }
 
 /* Propustek poznámky sekce */
 #prop-notes-section {
-flex-shrink: 0;
-background: var(–panel2);
-border-top: 1px solid var(–border);
-max-height: 35%;
-overflow-y: auto;
-padding: 8px 12px;
+  flex-shrink: 0;
+  background: var(--panel2);
+  border-top: 1px solid var(--border);
+  max-height: 35%;
+  overflow-y: auto;
+  padding: 8px 12px;
 }
 #prop-notes-header {
-display: flex; align-items: center; justify-content: space-between;
-margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
 }
-#prop-notes-header span { font-size: 12px; font-weight: 700; color: var(–accent2); }
+#prop-notes-header span { font-size: 12px; font-weight: 700; color: var(--accent2); }
 #btn-prop-add-note {
-background: var(–accent); color: #fff; border: none;
-border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer;
+  background: var(--accent); color: #fff; border: none;
+  border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer;
 }
 .prop-note-item {
-background: var(–panel); border-radius: 6px; padding: 6px 8px;
-margin-bottom: 6px; font-size: 12px;
+  background: var(--panel); border-radius: 6px; padding: 6px 8px;
+  margin-bottom: 6px; font-size: 12px;
 }
-.prop-note-meta { color: var(–text2); font-size: 10px; margin-bottom: 2px; }
-.prop-note-text { color: var(–text); line-height: 1.4; }
-.prop-note-del { float: right; background: none; border: none; color: var(–accent); cursor: pointer; font-size: 12px; }
+.prop-note-meta { color: var(--text2); font-size: 10px; margin-bottom: 2px; }
+.prop-note-text { color: var(--text); line-height: 1.4; }
+.prop-note-del { float: right; background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; }
 
 /* Propustek nová poznámka form */
 #prop-note-form {
-display: none;
-padding: 8px 12px;
-background: var(–panel2);
-border-top: 1px solid var(–border);
-flex-shrink: 0;
-gap: 6px;
-flex-direction: column;
+  display: none;
+  padding: 8px 12px;
+  background: var(--panel2);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 6px;
+  flex-direction: column;
 }
 #prop-note-form.open { display: flex; }
 
+
 /* Blokovat touch na mapě při otevřeném PDF panelu */
+
 
 /* PDF iframe scroll a zoom */
 #pdf-frame, #prop-iframe {
-overflow: auto;
--webkit-overflow-scrolling: touch;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 #pdf-frame-wrap {
-overflow: hidden;
+  overflow: hidden;
 }
 
 /* Panel zachytí touch eventy - mapa nad panelem zůstane aktivní */
@@ -444,156 +450,130 @@ overflow: hidden;
 #pdf-frame, #prop-iframe { touch-action: pan-x pan-y pinch-zoom; }
 
 @keyframes pulse-ring {
-0%   { transform: scale(0.8); opacity: 1; }
-100% { transform: scale(2.5); opacity: 0; }
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
 }
 .note-pulse-ring {
-width: 30px; height: 30px;
-border: 3px solid #f5a623;
-border-radius: 50%;
-animation: pulse-ring 1.2s ease-out infinite;
-position: absolute;
-top: 50%; left: 50%;
-transform: translate(-50%, -50%);
-pointer-events: none;
+  width: 30px; height: 30px;
+  border: 3px solid #f5a623;
+  border-radius: 50%;
+  animation: pulse-ring 1.2s ease-out infinite;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
 }
 
 .prikop-tooltip {
-background: rgba(30,64,175,0.95) !important;
-color: #dbeafe !important;
-border: 1px solid #60a5fa !important;
-border-radius: 6px !important;
-font-size: 12px !important;
-line-height: 1.5 !important;
+  background: rgba(30,64,175,0.95) !important;
+  color: #dbeafe !important;
+  border: 1px solid #60a5fa !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
 }
 
 .etapa-tooltip {
-background: rgba(15,52,96,0.95) !important;
-color: #eaeaea !important;
-border: 1px solid #4fc3f7 !important;
-border-radius: 6px !important;
-font-size: 12px !important;
-line-height: 1.6 !important;
-max-width: 280px !important;
+  background: rgba(15,52,96,0.95) !important;
+  color: #eaeaea !important;
+  border: 1px solid #4fc3f7 !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  line-height: 1.6 !important;
+  max-width: 280px !important;
 }
 
 .so-tooltip {
-background: rgba(15,52,96,0.95) !important;
-color: #eaeaea !important;
-border: 1px solid #94a3b8 !important;
-border-radius: 6px !important;
-font-size: 12px !important;
-line-height: 1.5 !important;
+  background: rgba(15,52,96,0.95) !important;
+  color: #eaeaea !important;
+  border: 1px solid #94a3b8 !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
 }
 
 .sanace-label {
-background: repeating-linear-gradient(
-45deg,
-rgba(14,165,233,0.85) 0px,
-rgba(251,191,36,0.85) 4px,
-rgba(30,20,0,0.7) 4px,
-rgba(30,20,0,0.7) 8px
-);
-color: #fff;
-font-size: 10px;
-font-weight: 800;
-padding: 2px 6px;
-border-radius: 3px;
-white-space: nowrap;
-box-shadow: 0 1px 4px rgba(0,0,0,.6);
-text-shadow: 0 1px 2px rgba(0,0,0,0.9);
-border: 1px solid rgba(14,165,233,0.6);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(14,165,233,0.85) 0px,
+    rgba(251,191,36,0.85) 4px,
+    rgba(30,20,0,0.7) 4px,
+    rgba(30,20,0,0.7) 8px
+  );
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0,0,0,.6);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+  border: 1px solid rgba(14,165,233,0.6);
 }
 .sanace-tooltip {
-background: rgba(7,89,133,0.95) !important;
-color: #e0f2fe !important;
-border: 1px solid #0ea5e9 !important;
-border-radius: 6px !important;
-font-size: 12px !important;
-line-height: 1.5 !important;
+  background: rgba(7,89,133,0.95) !important;
+  color: #e0f2fe !important;
+  border: 1px solid #0ea5e9 !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
 }
 
 #prikop-stav-modal {
-display: none;
-position: fixed;
-inset: 0;
-z-index: 5000;
-background: rgba(0,0,0,.6);
-align-items: center;
-justify-content: center;
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: rgba(0,0,0,.6);
+  align-items: center;
+  justify-content: center;
 }
 #prikop-stav-modal.open { display: flex; }
 #prikop-stav-box {
-background: var(–panel);
-border-radius: 14px;
-padding: 20px;
-width: min(92vw, 360px);
-display: flex;
-flex-direction: column;
-gap: 12px;
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 20px;
+  width: min(92vw, 360px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-#prikop-stav-title { font-size: 14px; font-weight: 700; color: var(–accent2); }
-#prikop-stav-km { font-size: 12px; color: var(–text2); }
+#prikop-stav-title { font-size: 14px; font-weight: 700; color: var(--accent2); }
+#prikop-stav-km { font-size: 12px; color: var(--text2); }
 .prikop-stav-btn {
-padding: 12px;
-border: none;
-border-radius: 8px;
-font-size: 14px;
-font-weight: 700;
-cursor: pointer;
-text-align: left;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
 }
 .prikop-stav-btn.hotovo { background: #166534; color: #bbf7d0; }
 .prikop-stav-btn.castecne { background: #92400e; color: #fde68a; }
-.prikop-stav-btn.reset { background: var(–panel2); color: var(–text2); font-size: 12px; }
+.prikop-stav-btn.reset { background: var(--panel2); color: var(--text2); font-size: 12px; }
 
 .etapa-tooltip.leaflet-popup-content-wrapper,
 .so-tooltip.leaflet-popup-content-wrapper {
-background: rgba(15,52,96,0.97) !important;
-color: #eaeaea !important;
-border: 1px solid #4fc3f7 !important;
-border-radius: 8px !important;
-font-size: 13px !important;
-line-height: 1.6 !important;
+  background: rgba(15,52,96,0.97) !important;
+  color: #eaeaea !important;
+  border: 1px solid #4fc3f7 !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
 }
 .etapa-tooltip.leaflet-popup-content-wrapper .leaflet-popup-content,
 .so-tooltip.leaflet-popup-content-wrapper .leaflet-popup-content {
-margin: 10px 14px !important;
+  margin: 10px 14px !important;
 }
 .etapa-tooltip .leaflet-popup-tip,
 .so-tooltip .leaflet-popup-tip {
-background: rgba(15,52,96,0.97) !important;
+  background: rgba(15,52,96,0.97) !important;
 }
 
 .nc-6 { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; }
 .nm-6 { background: linear-gradient(135deg, #7c3aed, #a855f7) !important; }
-
-.gps-wrap { position:relative; width:32px; height:32px; }
-.gps-dot {
-width:16px; height:16px;
-background:var(–green);
-border-radius:50%;
-border:3px solid white;
-box-shadow:0 0 12px rgba(72,187,120,.7);
-position:absolute;
-top:50%; left:50%;
-transform:translate(-50%,-50%);
-}
-.gps-arrow {
-position:absolute;
-top:50%; left:50%;
-width:0; height:0;
-border-left:6px solid transparent;
-border-right:6px solid transparent;
-border-bottom:18px solid rgba(72,187,120,0.9);
-transform-origin:50% 100%;
-margin-left:-6px;
-margin-top:-18px;
-filter:drop-shadow(0 0 2px rgba(0,0,0,.5));
-transition:transform 0.3s ease;
-}
 </style>
-
 </head>
 <body>
 
@@ -717,7 +697,6 @@ transition:transform 0.3s ease;
 </div>
 
 <button id="btn-gps" onclick="toggleGpsBtn()" title="GPS zapnout/vypnout / centrovat">📍</button>
-
 <div id="toast"></div>
 
 <div id="pdf-panel" style="touch-action:pan-x pan-y pinch-zoom;">
@@ -883,7 +862,6 @@ var gpsWatcher = null;
 var gpsMarker = null;
 var gpsActive = false;
 var gpsCentering = false;
-var gpsHeading = null;  // kompas směr ve stupních
 var gpxCumulative = [];
 var calibSorted = null;
 var layerGroups = {trasa:null, st100:null, st20:null, pr:null, propustky:null, prikopy:null, etapy:null, etapa1:null, etapa2:null, etapa3:null, etapa4:null, so:null, so101_1:null, so101_2:null, so101_3:null, sanace:null, notes:null, notes0:null, notes1:null, notes2:null, notes3:null, notes4:null, notes5:null, notes6:null};
@@ -1313,19 +1291,6 @@ function startGPS() {
   if(!navigator.geolocation){showToast('GPS není k dispozici');return;}
   gpsActive=true; gpsCentering=true;
   document.getElementById('btn-gps').classList.add('active');
-  // Kompas - směr telefonu
-  if(window.DeviceOrientationEvent) {
-    if(typeof DeviceOrientationEvent.requestPermission === 'function') {
-      // iOS 13+
-      DeviceOrientationEvent.requestPermission().then(function(state){
-        if(state === 'granted') {
-          window.addEventListener('deviceorientation', handleOrientation, true);
-        }
-      }).catch(function(){});
-    } else {
-      window.addEventListener('deviceorientation', handleOrientation, true);
-    }
-  }
   document.getElementById('lyr-gps').checked=true;
   gpsWatcher=navigator.geolocation.watchPosition(
     function(pos){updateGPS(pos.coords.latitude,pos.coords.longitude);},
@@ -1344,22 +1309,12 @@ function stopGPS() {
   document.getElementById('km-display').textContent='km –';
 }
 
-function buildGpsIcon() {
-  var arrowHtml = gpsHeading !== null
-    ? '<div class="gps-arrow" style="transform:rotate('+(gpsHeading-180)+'deg) translateX(-50%);top:0;left:50%;margin:0;"></div>'
-    : '';
-  return L.divIcon({
-    className:'',
-    html:'<div class="gps-wrap">' + arrowHtml + '<div class="gps-dot"></div></div>',
-    iconSize:[32,32], iconAnchor:[16,16]
-  });
-}
-
 function updateGPS(lat,lng) {
-  var icon = buildGpsIcon();
+  var icon=L.divIcon({className:'',html:'<div class="gps-dot"></div>',iconSize:[16,16],iconAnchor:[8,8]});
   if(!gpsMarker){gpsMarker=L.marker([lat,lng],{icon:icon,zIndexOffset:1000}).addTo(map);}
-  else{gpsMarker.setLatLng([lat,lng]); gpsMarker.setIcon(icon);}
-  document.getElementById('km-display').textContent='km '+fmtKm(nearestKmOnRoute(lat,lng));
+  else{gpsMarker.setLatLng([lat,lng]);}
+  var n=nearestOnRoute(lat,lng);
+  document.getElementById('km-display').textContent='km '+fmtKm(gpxCumToRealKm(n.cum));
   if(gpsCentering) map.setView([lat,lng],map.getZoom());
 }
 
@@ -1525,27 +1480,6 @@ function deleteNote_fromFirebase(noteId, callback) {
 }
 
 // ── Markery ────────────────────────────────────────────
-
-function nearestKmOnRoute(lat, lng) {
-  // Najdi nejbližší bod na segmentu (ne jen na GPX bodě)
-  var minD = Infinity;
-  var bestCum = 0;
-  for(var i = 0; i < GPX_POINTS.length - 1; i++) {
-    var ax = GPX_POINTS[i][0], ay = GPX_POINTS[i][1];
-    var bx = GPX_POINTS[i+1][0], by = GPX_POINTS[i+1][1];
-    // Projekce bodu na segment
-    var dx = bx - ax, dy = by - ay;
-    var lenSq = dx*dx + dy*dy;
-    var t = lenSq > 0 ? Math.max(0, Math.min(1, ((lat-ax)*dx + (lng-ay)*dy) / lenSq)) : 0;
-    var px = ax + t*dx, py = ay + t*dy;
-    var d = haversine(lat, lng, px, py);
-    if(d < minD) {
-      minD = d;
-      bestCum = gpxCumulative[i] + t * (gpxCumulative[i+1] - gpxCumulative[i]);
-    }
-  }
-  return gpxCumToRealKm(bestCum);
-}
 function renderNoteMarkers() {
   // Vyčistit staré vrstvy
   if(!notesLayer) {
@@ -1579,8 +1513,10 @@ function renderNoteMarkers() {
     var subLayer = layerGroups['notes' + catIdx];
     if(!subLayer) subLayer = notesLayer;
 
-    // Nejbližší staničení - přesná interpolace na segmentu
-    var kmText = fmtKm(nearestKmOnRoute(note.lat, note.lng));
+    // Nejbližší staničení
+    var nearest = nearestOnRoute(note.lat, note.lng);
+    var realKm = gpxCumToRealKm(nearest.cum);
+    var kmText = fmtKm(realKm);
     note._km = kmText;
 
     var authorText = note.author ? note.author : '';
@@ -1771,7 +1707,8 @@ function openNoteDetail(id) {
   // Zobraz staničení v detailu
   var kmEl = document.getElementById('note-detail-km');
   if(kmEl) {
-    var noteKm = fmtKm(nearestKmOnRoute(note.lat, note.lng));
+    var nearest2 = nearestOnRoute(note.lat, note.lng);
+    var noteKm = fmtKm(gpxCumToRealKm(nearest2.cum));
     note._km = noteKm;
     kmEl.textContent = 'km ' + noteKm;
     kmEl.style.display = 'inline-block';
@@ -1796,17 +1733,8 @@ function openNoteDetail(id) {
     btn.className = 'detail-photo-del';
     btn.textContent = '✕';
     (function(nid, pidx){ btn.onclick = function(){ deleteNotePhoto(nid, pidx); }; })(id, pi);
-    // Tlačítko stažení
-    var dlBtn = document.createElement('a');
-    dlBtn.href = src;
-    dlBtn.download = 'foto_' + id + '_' + (pi+1) + '.jpg';
-    dlBtn.style.cssText = 'position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,.7);color:#fff;font-size:10px;border-radius:4px;padding:2px 5px;text-decoration:none;';
-    dlBtn.textContent = '⬇️';
-    dlBtn.title = 'Uložit do zařízení';
-    div.style.position = 'relative';
     div.appendChild(img);
     div.appendChild(btn);
-    div.appendChild(dlBtn);
     photosEl.appendChild(div);
   });
 
@@ -1876,7 +1804,6 @@ function editCurrentNote() {
   editNotePhotos = (note.photos || []).slice(); // kopie pole fotek
 
   // Nastav hodnoty
-  if(document.getElementById('edit-nazev')) document.getElementById('edit-nazev').value = note.nazev || '';
   document.getElementById('edit-author').value = note.author || '';
   document.getElementById('edit-text').value = note.text || '';
   selectEditCat(note.cat || 0);
@@ -1931,7 +1858,7 @@ function saveEditNote() {
   if(!note) return;
 
   note.author = author;
-  note.nazev  = document.getElementById('edit-nazev') ? document.getElementById('edit-nazev').value.trim() : (note.nazev || '');
+  note.nazev  = document.getElementById('note-edit-nazev') ? document.getElementById('note-edit-nazev').value.trim() : (note.nazev || '');
   note.text   = text;
   note.cat    = window._editCat !== undefined ? window._editCat : note.cat;
   note.photos = editNotePhotos.slice();
@@ -2756,7 +2683,6 @@ function updatePrikopLabel(id, stav) {
 </script>
 
 <!-- Nová poznámka -->
-
 <div id="note-modal">
   <div id="note-box">
     <h3>📝 Nová poznámka</h3>
@@ -2783,7 +2709,6 @@ function updatePrikopLabel(id, stav) {
 </div>
 
 <!-- Detail poznámky -->
-
 <div id="note-detail">
   <div id="note-detail-box">
     <div id="note-detail-header">
@@ -2806,17 +2731,15 @@ function updatePrikopLabel(id, stav) {
 </div>
 
 <!-- Fullscreen foto -->
-
 <div id="photo-fs" onclick="document.getElementById('photo-fs').classList.remove('open')">
   <img id="photo-fs-img" src="">
 </div>
 
 <!-- Sync indikátor -->
-
 <div id="sync-indicator">⏳ Ukládám...</div>
 
-<!-- Editace poznámky -->
 
+<!-- Editace poznámky -->
 <div id="note-edit-modal">
   <div id="note-edit-box">
     <h3>✏️ Upravit poznámku</h3>
@@ -2829,7 +2752,6 @@ function updatePrikopLabel(id, stav) {
       <div class="note-cat nc-5" data-cat="5" onclick="selectEditCat(5)">📋 Kategorie 6</div>
       <div class="note-cat nc-6" data-cat="6" onclick="selectEditCat(6)">🏷️ Vlastní</div>
     </div>
-    <input id="edit-nazev" class="note-field" type="text" placeholder="📛 Název (nepovinný)" maxlength="60" style="font-weight:600;">
     <input id="edit-author" class="note-field" type="text" placeholder="Vaše jméno *" maxlength="40">
     <textarea id="edit-text" class="note-field" placeholder="Text poznámky..."></textarea>
     <div id="edit-photos-preview" class="note-photos-preview"></div>
@@ -2842,8 +2764,8 @@ function updatePrikopLabel(id, stav) {
   </div>
 </div>
 
-<!-- Propustek panel -->
 
+<!-- Propustek panel -->
 <div id="prop-panel" style="touch-action:pan-x pan-y pinch-zoom;">
   <div id="prop-header">
     <div id="prop-title">Propustek</div>
@@ -2896,6 +2818,7 @@ function updatePrikopLabel(id, stav) {
     </div>
   </div>
 </div>
+
 
 <div id="prikop-stav-modal">
   <div id="prikop-stav-box">
