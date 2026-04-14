@@ -1723,6 +1723,44 @@ window.addEventListener('load', function() {
   });
 });
 
+// -- GitHub foto upload -------------------------------------------
+var GITHUB_TOKEN  = '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';
+var GITHUB_REPO   = 'pripravar/I-3-Votice---Oldrichovec';
+var GITHUB_BRANCH = 'main';
+
+function uploadPhotoToGitHub(dataUrl, filename, callback) {
+  var base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+  var path = 'photos/' + filename;
+  var apiUrl = 'https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + path;
+  fetch(apiUrl, {
+    method: 'PUT',
+    headers: { 'Authorization': 'token ' + GITHUB_TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: 'Foto: ' + filename, content: base64, branch: GITHUB_BRANCH })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if(data && data.content && data.content.download_url) callback(data.content.download_url);
+    else { console.error('GitHub upload err:', data); callback(null); }
+  })
+  .catch(function(e){ console.error('GitHub upload exc:', e); callback(null); });
+}
+
+function uploadPhotosToGitHub(items, onProgress, onDone) {
+  var urls = []; var idx = 0;
+  function next() {
+    if(idx >= items.length) { onDone(urls); return; }
+    var src = (typeof items[idx] === 'object') ? items[idx].dataUrl : items[idx];
+    var filename = 'foto_' + Date.now() + '_' + idx + '.jpg';
+    onProgress(idx + 1, items.length);
+    uploadPhotoToGitHub(src, filename, function(url){
+      if(url) urls.push(url);
+      else showToast('Fotka ' + (idx+1) + ' se nenahrala', 2000);
+      idx++; next();
+    });
+  }
+  next();
+}
+
 function compressImage(dataUrl, callback) {
   var img = new Image();
   img.onload = function() {
@@ -1762,22 +1800,24 @@ function saveNote() {
   var text   = document.getElementById('note-text').value.trim();
   if(!author) { showToast('Zadejte jméno!', 2000); return; }
   localStorage.setItem('noteAuthor', author);
-
   var nazev = document.getElementById('note-nazev').value.trim();
-  var note = {
-    id:      Date.now().toString(),
-    lat:     newNoteLat,
-    lng:     newNoteLng,
-    cat:     newNoteCat,
-    author:  author,
-    nazev:   nazev,
-    text:    text,
-    photos:  newNotePhotos.map(function(p){ return p.dataUrl; }),
-    time:    new Date().toLocaleString('cs-CZ'),
-  };
-
+  var noteId = Date.now().toString();
+  var toUpload = newNotePhotos.filter(function(p){ var s=p.dataUrl||p; return s.startsWith('data:'); });
+  var keepUrls = newNotePhotos.filter(function(p){ var s=p.dataUrl||p; return !s.startsWith('data:'); }).map(function(p){ return p.dataUrl||p; });
+  function finish(uploadedUrls) {
+    var note = { id:noteId, lat:newNoteLat, lng:newNoteLng, cat:newNoteCat,
+      author:author, nazev:nazev, text:text,
+      photos:keepUrls.concat(uploadedUrls), time:new Date().toLocaleString('cs-CZ') };
+    saveNote_toFirebase(note, null);
+  }
   closeNoteModal();
-  saveNote_toFirebase(note, null);
+  if(toUpload.length === 0) { finish([]); }
+  else {
+    showSync('⏳ Nahrávám fotky (0/' + toUpload.length + ')...');
+    uploadPhotosToGitHub(toUpload,
+      function(done,total){ showSync('⏳ Nahrávám fotky (' + done + '/' + total + ')...'); },
+      function(urls){ finish(urls); });
+  }
 }
 
 // ── Detail poznámky ────────────────────────────────────
@@ -1817,7 +1857,8 @@ function openNoteDetail(id) {
     img.onclick = function(){ openPhotoFs(this.src); };
     var dlBtn = document.createElement('a');
     dlBtn.href = src;
-    dlBtn.download = 'foto_' + (pi+1) + '.jpg';
+    if(!src.startsWith('data:')){ dlBtn.target='_blank'; dlBtn.rel='noopener'; }
+    else { dlBtn.download = 'foto_' + (pi+1) + '.jpg'; }
     dlBtn.style.cssText = 'position:absolute;bottom:2px;left:2px;background:rgba(0,0,0,0.6);color:#fff;font-size:14px;border-radius:4px;padding:1px 4px;text-decoration:none;line-height:1.4;';
     dlBtn.textContent = '⬇';
     var btn = document.createElement('button');
@@ -1872,9 +1913,10 @@ function closeNoteDetail() {
 }
 
 function openPhotoFs(src) {
-  // src can be string or img element
   var url = (typeof src === 'string') ? src : src.src;
   document.getElementById('photo-fs-img').src = url;
+  var ob = document.getElementById('photo-fs-open');
+  if(ob) ob.href = url;
   document.getElementById('photo-fs').classList.add('open');
 }
 
@@ -1965,23 +2007,28 @@ function saveEditNote() {
   var author = document.getElementById('edit-author').value.trim();
   var text   = document.getElementById('edit-text').value.trim();
   if(!author) { showToast('Zadejte jméno!', 2000); return; }
-
   var note = notesData.filter(function(n){ return n.id === editNoteId; })[0];
   if(!note) return;
-
-  note.author = author;
-  note.nazev  = document.getElementById('edit-nazev').value.trim();
-  note.text   = text;
-  note.cat    = window._editCat !== undefined ? window._editCat : note.cat;
-  note.photos = editNotePhotos.slice();
-  note.edited = new Date().toLocaleString('cs-CZ');
-
-  var savedId = note.id;
+  var toUpload = editNotePhotos.filter(function(s){ return s.startsWith('data:'); });
+  var keepUrls = editNotePhotos.filter(function(s){ return !s.startsWith('data:'); });
+  function finish(uploadedUrls) {
+    note.author = author;
+    note.nazev  = document.getElementById('edit-nazev').value.trim();
+    note.text   = text;
+    note.cat    = window._editCat !== undefined ? window._editCat : note.cat;
+    note.photos = keepUrls.concat(uploadedUrls);
+    note.edited = new Date().toLocaleString('cs-CZ');
+    var savedId = note.id;
+    saveNote_toFirebase(note, function(){ setTimeout(function(){ openNoteDetail(savedId); }, 400); });
+  }
   closeEditModal();
-  saveNote_toFirebase(note, function(){
-    // Počkat až Firebase listener aktualizuje notesData, pak otevřít detail
-    setTimeout(function(){ openNoteDetail(savedId); }, 400);
-  });
+  if(toUpload.length === 0) { finish([]); }
+  else {
+    showSync('⏳ Nahrávám fotky (0/' + toUpload.length + ')...');
+    uploadPhotosToGitHub(toUpload,
+      function(done,total){ showSync('⏳ Nahrávám fotky (' + done + '/' + total + ')...'); },
+      function(urls){ finish(urls); });
+  }
 }
 
 // Přidat foto v editaci
@@ -2573,11 +2620,13 @@ function addPropPhotos(input) {
   files.forEach(function(file) {
     var reader = new FileReader();
     reader.onload = function(e) {
-      propNotePhotos.push(e.target.result);
-      var img = document.createElement('img');
-      img.src = e.target.result;
-      img.style.cssText = 'width:54px;height:54px;object-fit:cover;border-radius:4px;';
-      preview.appendChild(img);
+      compressImage(e.target.result, function(compressed) {
+        propNotePhotos.push(compressed);
+        var img = document.createElement('img');
+        img.src = compressed;
+        img.style.cssText = 'width:54px;height:54px;object-fit:cover;border-radius:4px;';
+        preview.appendChild(img);
+      });
     };
     reader.readAsDataURL(file);
   });
@@ -2590,19 +2639,22 @@ function savePropNote() {
   if(!author) { showToast('Zadejte jméno!', 2000); return; }
   if(!text)   { showToast('Zadejte text poznámky!', 2000); return; }
   localStorage.setItem('noteAuthor', author);
-  var note = {
-    author: author, text: text,
-    time: new Date().toLocaleString('cs-CZ'),
-    photos: propNotePhotos.slice(),
-  };
-  var key = Date.now().toString();
-  db.ref('propustky/' + currentPropId + '/poznamky/' + key).set(note)
-    .then(function() {
-      showToast('✅ Uloženo', 1500);
-      togglePropNoteForm();
-      loadPropNotes(currentPropId);
-    })
-    .catch(function() { showToast('❌ Chyba uložení', 2000); });
+  var toUpload = propNotePhotos.filter(function(s){ return s.startsWith('data:'); });
+  var keepUrls = propNotePhotos.filter(function(s){ return !s.startsWith('data:'); });
+  function finish(uploadedUrls) {
+    var note = { author:author, text:text, time:new Date().toLocaleString('cs-CZ'), photos:keepUrls.concat(uploadedUrls) };
+    var key = Date.now().toString();
+    db.ref('propustky/' + currentPropId + '/poznamky/' + key).set(note)
+      .then(function(){ showToast('✅ Uloženo', 1500); togglePropNoteForm(); loadPropNotes(currentPropId); })
+      .catch(function(){ showToast('❌ Chyba uložení', 2000); });
+  }
+  if(toUpload.length === 0) { finish([]); }
+  else {
+    showSync('⏳ Nahrávám fotky (0/' + toUpload.length + ')...');
+    uploadPhotosToGitHub(toUpload,
+      function(done,total){ showSync('⏳ Nahrávám fotky (' + done + '/' + total + ')...'); },
+      function(urls){ finish(urls); });
+  }
 }
 
 function deletePropNote(propId, key) {
@@ -2644,11 +2696,13 @@ function addPropEditPhotos(input) {
   files.forEach(function(file) {
     var reader = new FileReader();
     reader.onload = function(e) {
-      propEditPhotos.push(e.target.result);
-      var img = document.createElement('img');
-      img.src = e.target.result;
-      img.style.cssText = 'width:54px;height:54px;object-fit:cover;border-radius:4px;';
-      prev.appendChild(img);
+      compressImage(e.target.result, function(compressed) {
+        propEditPhotos.push(compressed);
+        var img = document.createElement('img');
+        img.src = compressed;
+        img.style.cssText = 'width:54px;height:54px;object-fit:cover;border-radius:4px;';
+        prev.appendChild(img);
+      });
     };
     reader.readAsDataURL(file);
   });
@@ -2659,15 +2713,26 @@ function savePropEdit() {
   var author = document.getElementById('prop-edit-author').value.trim();
   var text   = document.getElementById('prop-edit-text').value.trim();
   if(!author || !text) { showToast('Vyplňte jméno a text', 2000); return; }
-  db.ref('propustky/' + currentPropId + '/poznamky/' + propEditKey).update({
-    author: author, text: text,
-    photos: propEditPhotos,
-    edited: new Date().toLocaleString('cs-CZ'),
-  }).then(function() {
-    showToast('✅ Uloženo', 1500);
-    closePropEdit();
-    loadPropNotes(currentPropId);
-  }).catch(function() { showToast('❌ Chyba uložení', 2000); });
+  var toUpload = propEditPhotos.filter(function(s){ return s.startsWith('data:'); });
+  var keepUrls = propEditPhotos.filter(function(s){ return !s.startsWith('data:'); });
+  function doSave(uploadedUrls) {
+    db.ref('propustky/' + currentPropId + '/poznamky/' + propEditKey).update({
+      author: author, text: text,
+      photos: keepUrls.concat(uploadedUrls),
+      edited: new Date().toLocaleString('cs-CZ'),
+    }).then(function() {
+      showToast('✅ Uloženo', 1500);
+      closePropEdit();
+      loadPropNotes(currentPropId);
+    }).catch(function() { showToast('❌ Chyba uložení', 2000); });
+  }
+  if(toUpload.length === 0) { doSave([]); }
+  else {
+    showSync('⏳ Nahrávám fotky (0/' + toUpload.length + ')...');
+    uploadPhotosToGitHub(toUpload,
+      function(done,total){ showSync('⏳ Nahrávám fotky (' + done + '/' + total + ')...'); },
+      function(urls){ doSave(urls); });
+  }
 }
 
 function closePropEdit() {
@@ -2783,8 +2848,12 @@ function updatePrikopLabel(id, stav) {
 </div>
 
 <!-- Fullscreen foto -->
-<div id="photo-fs" onclick="document.getElementById('photo-fs').classList.remove('open')">
-  <img id="photo-fs-img" src="">
+<div id="photo-fs" onclick="if(event.target===this||event.target.id==='photo-fs-img')document.getElementById('photo-fs').classList.remove('open')">
+  <img id="photo-fs-img" src="" style="max-width:100%;max-height:calc(100% - 60px);object-fit:contain;">
+  <div id="photo-fs-bar" style="position:absolute;bottom:0;left:0;right:0;display:flex;gap:10px;justify-content:center;padding:10px;background:rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
+    <a id="photo-fs-open" href="#" target="_blank" rel="noopener" style="background:#1565c0;color:#fff;padding:8px 18px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:700;">&#128247; Otevřít / Uložit</a>
+    <button onclick="document.getElementById('photo-fs').classList.remove('open')" style="background:#333;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:14px;cursor:pointer;">Zavít</button>
+  </div>
 </div>
 
 <!-- Sync indikátor -->
