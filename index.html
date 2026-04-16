@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>I/3 Votice – Oldřichovec</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -588,51 +588,27 @@ textarea.note-field { min-height:80px; resize:vertical; }
 </style>
 
 <script>
-// iOS Safari - prevence page zoom
-// gesture* handlery jen na #map elementu (přidáme po DOMContentLoaded)
-// touchmove blokujeme pouze když jde o multi-touch MIMO panely
-document.addEventListener('touchmove', function(e){
-  if(e.touches.length > 1){
-    // Pinch gesto - povolíme jen v panelech kde chceme zoom
-    var target = e.target;
-    var inZoomArea = target.closest && (
-      target.closest('#pdf-panel') ||
-      target.closest('#prop-panel') ||
-      target.closest('#photo-fs')
-    );
-    if(!inZoomArea) e.preventDefault();
-  }
-}, {passive:false});
-
-// Double-tap prevence page zoom - jen na mapě a hlavičce
+// iOS Safari - zabranit page zoom pri double-tap na mape
+// Panely, modaly a layers panel zustavaji plne funkční
 var lastTouchEnd = 0;
 document.addEventListener('touchend', function(e){
   var now = Date.now();
   if(now - lastTouchEnd < 300){
     var target = e.target;
-    var inPanel = target.closest && (
+    var inInteractive = target.closest && (
       target.closest('#pdf-panel') ||
       target.closest('#prop-panel') ||
       target.closest('#photo-fs') ||
       target.closest('#layers-panel') ||
       target.closest('#note-modal') ||
       target.closest('#note-detail') ||
-      target.closest('#note-edit-modal')
+      target.closest('#note-edit-modal') ||
+      target.closest('#prikop-stav-modal')
     );
-    if(!inPanel) e.preventDefault();
+    if(!inInteractive) e.preventDefault();
   }
   lastTouchEnd = now;
 }, {passive:false});
-
-// gesture* handlery přidáme na #map po načtení
-document.addEventListener('DOMContentLoaded', function(){
-  var mapEl = document.getElementById('map');
-  if(mapEl){
-    mapEl.addEventListener('gesturestart',  function(e){ e.preventDefault(); }, {passive:false});
-    mapEl.addEventListener('gesturechange', function(e){ e.preventDefault(); }, {passive:false});
-    mapEl.addEventListener('gestureend',    function(e){ e.preventDefault(); }, {passive:false});
-  }
-});
 </script>
 </head>
 <body>
@@ -640,6 +616,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <div id="header">
   <h1>I/3 <span>Votice – Oldřichovec</span></h1>
   <div id="km-display">km –</div>
+  <button id="btn-reset-view" onclick="resetMapView()" title="Reset pohledu" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 10px;font-size:15px;cursor:pointer;">⌂</button>
   <button id="btn-layers" onclick="toggleLayers()">☰ Vrstvy</button>
 </div>
 
@@ -1445,6 +1422,11 @@ function centerGPS() {
 }
 
 // ── VRSTVY ────────────────────────────
+
+function resetMapView() {
+  if(!map) return;
+  map.setView([49.625, 14.648], 13);
+}
 function toggleLayers(){document.getElementById('layers-panel').classList.toggle('open');}
 function closeLayersPanel(){document.getElementById('layers-panel').classList.remove('open');}
 
@@ -1993,8 +1975,8 @@ function closePhotoFs() {
   document.getElementById('photo-fs').classList.remove('open');
   lockViewport();
 }
-function lockViewport()  { document.querySelector('meta[name=viewport]').setAttribute('content','width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no'); }
-function unlockViewport(){ document.querySelector('meta[name=viewport]').setAttribute('content','width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes'); }
+function lockViewport()  { document.querySelector('meta[name=viewport]').setAttribute('content','width=device-width, initial-scale=1.0, maximum-scale=1.0'); }
+function unlockViewport(){ document.querySelector('meta[name=viewport]').setAttribute('content','width=device-width, initial-scale=1.0, maximum-scale=5.0'); }
 
 
 function deleteNotePhotoByEl(btn, noteId, photoIdx) {
