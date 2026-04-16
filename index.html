@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>I/3 Votice – Oldřichovec</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -25,7 +25,7 @@ body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui
 #km-display { background:var(--panel2); border:1px solid var(--accent); border-radius:8px; padding:4px 10px; font-size:13px; font-weight:700; color:var(--accent2); min-width:90px; text-align:center; }
 #btn-layers { background:var(--panel2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:6px 10px; font-size:13px; cursor:pointer; white-space:nowrap; }
 
-#map { flex:1; width:100%; z-index:1; }
+#map { flex:1; width:100%; z-index:1; touch-action:none; }
 
 #layers-panel { position:fixed; top:56px; right:0; width:250px; max-height:calc(100vh - 70px); overflow-y:auto; background:var(--panel); border-left:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:0 0 0 var(--radius); z-index:2000; display:none; padding:12px; -webkit-overflow-scrolling:touch; }
 #layers-panel.open { display:block; }
@@ -586,6 +586,54 @@ textarea.note-field { min-height:80px; resize:vertical; }
 }
 
 </style>
+
+<script>
+// iOS Safari - prevence page zoom
+// gesture* handlery jen na #map elementu (přidáme po DOMContentLoaded)
+// touchmove blokujeme pouze když jde o multi-touch MIMO panely
+document.addEventListener('touchmove', function(e){
+  if(e.touches.length > 1){
+    // Pinch gesto - povolíme jen v panelech kde chceme zoom
+    var target = e.target;
+    var inZoomArea = target.closest && (
+      target.closest('#pdf-panel') ||
+      target.closest('#prop-panel') ||
+      target.closest('#photo-fs')
+    );
+    if(!inZoomArea) e.preventDefault();
+  }
+}, {passive:false});
+
+// Double-tap prevence page zoom - jen na mapě a hlavičce
+var lastTouchEnd = 0;
+document.addEventListener('touchend', function(e){
+  var now = Date.now();
+  if(now - lastTouchEnd < 300){
+    var target = e.target;
+    var inPanel = target.closest && (
+      target.closest('#pdf-panel') ||
+      target.closest('#prop-panel') ||
+      target.closest('#photo-fs') ||
+      target.closest('#layers-panel') ||
+      target.closest('#note-modal') ||
+      target.closest('#note-detail') ||
+      target.closest('#note-edit-modal')
+    );
+    if(!inPanel) e.preventDefault();
+  }
+  lastTouchEnd = now;
+}, {passive:false});
+
+// gesture* handlery přidáme na #map po načtení
+document.addEventListener('DOMContentLoaded', function(){
+  var mapEl = document.getElementById('map');
+  if(mapEl){
+    mapEl.addEventListener('gesturestart',  function(e){ e.preventDefault(); }, {passive:false});
+    mapEl.addEventListener('gesturechange', function(e){ e.preventDefault(); }, {passive:false});
+    mapEl.addEventListener('gestureend',    function(e){ e.preventDefault(); }, {passive:false});
+  }
+});
+</script>
 </head>
 <body>
 
@@ -1314,8 +1362,13 @@ function closePdf() {
   if(pf) pf.src='about:blank';
   docPages=[]; docPageIdx=0;
   currentPdfSrc='';
+  lockViewport();
 }
-function togglePdfFs() {document.getElementById('pdf-panel').classList.toggle('fullscreen');}
+function togglePdfFs() {
+  var panel = document.getElementById('pdf-panel');
+  panel.classList.toggle('fullscreen');
+  panel.classList.contains('fullscreen') ? unlockViewport() : lockViewport();
+}
 
 // ── GPS ───────────────────────────────
 function toggleGPS(en){en?startGPS():stopGPS();}
@@ -1933,7 +1986,16 @@ function openPhotoFs(src) {
   var ob = document.getElementById('photo-fs-open');
   if(ob) ob.href = url;
   document.getElementById('photo-fs').classList.add('open');
+  unlockViewport();
 }
+
+function closePhotoFs() {
+  document.getElementById('photo-fs').classList.remove('open');
+  lockViewport();
+}
+function lockViewport()  { document.querySelector('meta[name=viewport]').setAttribute('content','width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no'); }
+function unlockViewport(){ document.querySelector('meta[name=viewport]').setAttribute('content','width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes'); }
+
 
 function deleteNotePhotoByEl(btn, noteId, photoIdx) {
   deleteNotePhoto(noteId, photoIdx);
@@ -2540,6 +2602,7 @@ function openPropPdfExternal() {
 function togglePropFs() {
   var p = document.getElementById('prop-panel');
   p.classList.toggle('fullscreen');
+  p.classList.contains('fullscreen') ? unlockViewport() : lockViewport();
 }
 function closePropPanel() {
   document.getElementById('prop-panel').classList.remove('open','fullscreen');
@@ -2548,6 +2611,7 @@ function closePropPanel() {
   if(fr) fr.src = 'about:blank';
   currentPropId = null;
   currentPropSrc = '';
+  lockViewport();
 }
 
 // ── Poznámky propustku (Firebase) s foto a editací ──
@@ -2863,11 +2927,11 @@ function updatePrikopLabel(id, stav) {
 </div>
 
 <!-- Fullscreen foto -->
-<div id="photo-fs" onclick="if(event.target===this||event.target.id==='photo-fs-img')document.getElementById('photo-fs').classList.remove('open')">
+<div id="photo-fs" onclick="if(event.target===this||event.target.id==='photo-fs-img')closePhotoFs()">
   <img id="photo-fs-img" src="" style="max-width:100%;max-height:calc(100% - 60px);object-fit:contain;">
   <div id="photo-fs-bar" style="position:absolute;bottom:0;left:0;right:0;display:flex;gap:10px;justify-content:center;padding:10px;background:rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
     <a id="photo-fs-open" href="#" target="_blank" rel="noopener" style="background:#1565c0;color:#fff;padding:8px 18px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:700;">&#128247; Otevřít / Uložit</a>
-    <button onclick="document.getElementById('photo-fs').classList.remove('open')" style="background:#333;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:14px;cursor:pointer;">Zavít</button>
+    <button onclick="closePhotoFs()" style="background:#333;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:14px;cursor:pointer;">Zavít</button>
   </div>
 </div>
 
