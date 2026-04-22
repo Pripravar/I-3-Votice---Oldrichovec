@@ -649,6 +649,10 @@ document.addEventListener('touchend', function(e){
     <button class="bm-btn" onclick="setBasemap('aerial',this)">Letecká</button>
     <button class="bm-btn active" id="osm-btn" onclick="setBasemap('osm',this)">OSM</button>
   </div>
+  <div class="layer-row">
+    <label>🗺️ Katastr (KN)</label>
+    <label class="toggle"><input type="checkbox" id="lyr-katastr" onchange="toggleKatastr(this.checked)"><span class="toggle-slider"></span></label>
+  </div>
   <h3>📍 Vrstvy</h3>
   <div class="layer-row">
     <label>🛣️ Trasa</label>
@@ -1018,6 +1022,17 @@ function initMap() {
   // OSM jako výchozí – Mapy.cz vyžaduje registraci domény na api.mapy.cz
   baseLayers.osm.addTo(map);
   currentBasemap='osm';
+
+  // Katastrální mapa ČÚZK - WMS overlay
+  baseLayers.katastr = L.tileLayer.wms('https://services.cuzk.cz/wms/wms.asp', {
+    layers: 'KN',
+    format: 'image/png',
+    transparent: true,
+    opacity: 0.6,
+    attribution: '© ČÚzK',
+    maxZoom: 20,
+    version: '1.3.0'
+  });
 
   map.on('dragstart',function(){gpsCentering=false;});
   map.on('click',function(){closeLayersPanel();});
@@ -1462,6 +1477,17 @@ function setBasemap(type,btn){
   document.querySelectorAll('.bm-btn').forEach(function(b){b.classList.remove('active');});
   btn.classList.add('active');
 }
+function toggleKatastr(en) {
+  if(!baseLayers.katastr) return;
+  if(en) {
+    baseLayers.katastr.addTo(map);
+    // Zajistit že katastr je nad podkladem ale pod ostatními vrstvami
+    baseLayers.katastr.setZIndex(200);
+  } else {
+    map.removeLayer(baseLayers.katastr);
+  }
+}
+
 
 // ── INIT ──────────────────────────────
 function init() {
