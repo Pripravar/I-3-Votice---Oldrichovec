@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>I/3 Votice – Oldřichovec</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -19,7 +19,7 @@
 html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; }
 body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; height:100vh; overflow:hidden; display:flex; flex-direction:column; }
 
-#header { background:var(--panel); border-bottom:1px solid var(--border); padding:10px 14px; padding-top:calc(10px + env(safe-area-inset-top)); display:flex; align-items:center; gap:10px; z-index:1000; flex-shrink:0; }
+#header { background:var(--panel); border-bottom:1px solid var(--border); padding:10px 14px; display:flex; align-items:center; gap:10px; z-index:1000; flex-shrink:0; }
 #header h1 { font-size:15px; font-weight:700; flex:1; }
 #header h1 span { color:var(--accent); }
 #km-display { background:var(--panel2); border:1px solid var(--accent); border-radius:8px; padding:4px 10px; font-size:13px; font-weight:700; color:var(--accent2); min-width:90px; text-align:center; }
@@ -27,7 +27,7 @@ body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui
 
 #map { flex:1; width:100%; z-index:1; touch-action:none; }
 
-#layers-panel { position:fixed; top:calc(56px + env(safe-area-inset-top)); right:0; width:250px; max-height:calc(100vh - 70px); overflow-y:auto; background:var(--panel); border-left:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:0 0 0 var(--radius); z-index:2000; display:none; padding:12px; -webkit-overflow-scrolling:touch; }
+#layers-panel { position:fixed; top:56px; right:0; width:250px; max-height:calc(100vh - 70px); overflow-y:auto; background:var(--panel); border-left:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:0 0 0 var(--radius); z-index:2000; display:none; padding:12px; -webkit-overflow-scrolling:touch; }
 #layers-panel.open { display:block; }
 #layers-panel h3 { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--text2); margin-bottom:8px; margin-top:10px; }
 #layers-panel h3:first-child { margin-top:0; }
@@ -43,7 +43,7 @@ body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui
 .toggle input:checked + .toggle-slider { background:var(--accent); }
 .toggle input:checked + .toggle-slider:before { transform:translateX(18px); }
 
-#btn-gps { position:fixed; bottom:calc(24px + env(safe-area-inset-bottom)); right:calc(16px + env(safe-area-inset-right)); width:48px; height:48px; border-radius:50%; background:var(--panel2); border:2px solid var(--border); color:var(--text); font-size:22px; cursor:pointer; z-index:1500; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(0,0,0,.4); transition:all .2s; }
+#btn-gps { position:fixed; bottom:24px; right:16px; width:48px; height:48px; border-radius:50%; background:var(--panel2); border:2px solid var(--border); color:var(--text); font-size:22px; cursor:pointer; z-index:1500; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(0,0,0,.4); transition:all .2s; }
 #btn-gps.active { border-color:var(--green); color:var(--green); box-shadow:0 0 16px rgba(72,187,120,.4); }
 
 #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:8px 16px; font-size:13px; z-index:3000; opacity:0; transition:all .3s; white-space:nowrap; pointer-events:none; }
@@ -645,35 +645,35 @@ document.addEventListener('touchend', function(e){
   </div>
   <div class="layer-row">
     <label>📝 Poznámky</label>
-    <label class="toggle"><input type="checkbox" id="lyr-notes" checked onchange="toggleNotesLayer(this.checked)"><span class="toggle-slider"></span></label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes" onchange="toggleNotesLayer(this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row" style="padding-left:12px;">
     <label style="font-size:12px;">↳ 📌 Obecná</label>
-    <label class="toggle"><input type="checkbox" id="lyr-notes0" checked onchange="toggleLayer('notes0',this.checked)"><span class="toggle-slider"></span></label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes0" onchange="toggleLayer('notes0',this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row" style="padding-left:12px;">
     <label style="font-size:12px;">↳ ℹ️ Informace</label>
-    <label class="toggle"><input type="checkbox" id="lyr-notes1" checked onchange="toggleLayer('notes1',this.checked)"><span class="toggle-slider"></span></label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes1" onchange="toggleLayer('notes1',this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row" style="padding-left:12px;">
     <label style="font-size:12px;">↳ ⚠️ Problém</label>
-    <label class="toggle"><input type="checkbox" id="lyr-notes2" checked onchange="toggleLayer('notes2',this.checked)"><span class="toggle-slider"></span></label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes2" onchange="toggleLayer('notes2',this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row" style="padding-left:12px;">
     <label style="font-size:12px;">↳ ✅ Hotovo</label>
-    <label class="toggle"><input type="checkbox" id="lyr-notes3" checked onchange="toggleLayer('notes3',this.checked)"><span class="toggle-slider"></span></label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes3" onchange="toggleLayer('notes3',this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row" style="padding-left:12px;">
     <label style="font-size:12px;">↳ 🔍 Kontrola</label>
-    <label class="toggle"><input type="checkbox" id="lyr-notes4" checked onchange="toggleLayer('notes4',this.checked)"><span class="toggle-slider"></span></label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes4" onchange="toggleLayer('notes4',this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row" style="padding-left:12px;">
     <label style="font-size:12px;">↳ 📋 Kategorie 6</label>
-    <label class="toggle"><input type="checkbox" id="lyr-notes5" checked onchange="toggleLayer('notes5',this.checked)"><span class="toggle-slider"></span></label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes5" onchange="toggleLayer('notes5',this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row" style="padding-left:12px;">
     <label style="font-size:12px;" id="notes-lbl-6">↳ 🏷️ Vlastní</label>
-    <label class="toggle"><input type="checkbox" id="lyr-notes6" checked onchange="toggleLayer('notes6',this.checked)"><span class="toggle-slider"></span></label>
+    <label class="toggle"><input type="checkbox" id="lyr-notes6" onchange="toggleLayer('notes6',this.checked)"><span class="toggle-slider"></span></label>
   </div>
   <div class="layer-row">
     <label>🔵 Propustky (SO 102)</label>
@@ -1587,7 +1587,7 @@ function deleteNote_fromFirebase(noteId, callback) {
 function renderNoteMarkers() {
   // Vyčistit staré vrstvy
   if(!notesLayer) {
-    notesLayer = L.layerGroup().addTo(map);
+    notesLayer = L.layerGroup(); // nepridavame do mapy - vychozi stav vypnuto
     layerGroups.notes = notesLayer;
   } else {
     notesLayer.clearLayers();
@@ -1772,6 +1772,51 @@ function getGithubToken() {
 }
 var GITHUB_TOKEN = getGithubToken();
 
+// -- Burn-in metadata do fotky (km, datum, autor) --------
+function burnInMetadata(dataUrl, km, author, callback) {
+  var img = new Image();
+  img.onload = function() {
+    var canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    var dnes = new Date().toLocaleDateString('cs-CZ');
+    var line1 = 'km ' + (km || '-') + '   •   ' + dnes;
+    var line2 = author || '';
+
+    var fontSize = Math.max(20, Math.round(img.width / 40));
+    ctx.font = 'bold ' + fontSize + 'px Arial, sans-serif';
+
+    var pad = Math.round(fontSize * 0.6);
+    var lineH = Math.round(fontSize * 1.45);
+    var textW = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width);
+    var boxW = textW + pad * 2;
+    var boxH = lineH * 2 + pad;
+    var boxX = img.width - boxW - pad;
+    var boxY = img.height - boxH - pad;
+
+    // Polopruhledny cerny pruh
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    if(ctx.roundRect) { ctx.beginPath(); ctx.roundRect(boxX, boxY, boxW, boxH, 6); ctx.fill(); }
+    else { ctx.fillRect(boxX, boxY, boxW, boxH); }
+
+    // Bily text - radek 1 tucny
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold ' + fontSize + 'px Arial, sans-serif';
+    ctx.fillText(line1, boxX + pad, boxY + lineH * 0.85);
+
+    // Radek 2 normalni
+    ctx.font = fontSize + 'px Arial, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.88)';
+    ctx.fillText(line2, boxX + pad, boxY + lineH * 1.88);
+
+    callback(canvas.toDataURL('image/jpeg', 0.88));
+  };
+  img.src = dataUrl;
+}
+
 function uploadPhotoToGitHub(dataUrl, filename, callback) {
   var base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '');
   var path = 'photos/' + filename;
@@ -1795,18 +1840,25 @@ function uploadPhotoToGitHub(dataUrl, filename, callback) {
   .catch(function(e){ console.error('GitHub upload exc:', e); showToast('❌ Síťová chyba uploadu', 3000); callback(null); });
 }
 
-function uploadPhotosToGitHub(items, onProgress, onDone) {
+function uploadPhotosToGitHub(items, onProgress, onDone, meta) {
   var urls = []; var idx = 0;
   function next() {
     if(idx >= items.length) { onDone(urls); return; }
     var src = (typeof items[idx] === 'object') ? items[idx].dataUrl : items[idx];
     var filename = 'foto_' + Date.now() + '_' + idx + '.jpg';
     onProgress(idx + 1, items.length);
-    uploadPhotoToGitHub(src, filename, function(url){
-      if(url) urls.push(url);
-      else showToast('Fotka ' + (idx+1) + ' se nenahrala', 2000);
-      idx++; next();
-    });
+    function doUpload(finalSrc) {
+      uploadPhotoToGitHub(finalSrc, filename, function(url){
+        if(url) urls.push(url);
+        else showToast('Fotka ' + (idx+1) + ' se nenahrala', 2000);
+        idx++; next();
+      });
+    }
+    if(meta && (meta.km || meta.author)) {
+      burnInMetadata(src, meta.km, meta.author, doUpload);
+    } else {
+      doUpload(src);
+    }
   }
   next();
 }
@@ -1860,13 +1912,18 @@ function saveNote() {
       photos:keepUrls.concat(uploadedUrls), time:new Date().toLocaleString('cs-CZ') };
     saveNote_toFirebase(note, null);
   }
+  var metaKm = null;
+  if(newNoteLat && newNoteLng) {
+    try { metaKm = fmtKm(gpxCumToRealKm(nearestOnRoute(newNoteLat, newNoteLng).cum)); } catch(e){}
+  }
   closeNoteModal();
   if(toUpload.length === 0) { finish([]); }
   else {
     showSync('⏳ Nahrávám fotky (0/' + toUpload.length + ')...');
     uploadPhotosToGitHub(toUpload,
       function(done,total){ showSync('⏳ Nahrávám fotky (' + done + '/' + total + ')...'); },
-      function(urls){ finish(urls); });
+      function(urls){ finish(urls); },
+      {km: metaKm, author: author});
   }
 }
 
@@ -2080,13 +2137,18 @@ function saveEditNote() {
     var savedId = note.id;
     saveNote_toFirebase(note, function(){ setTimeout(function(){ openNoteDetail(savedId); }, 400); });
   }
+  var editMetaKm = null;
+  if(note && note.lat && note.lng) {
+    try { editMetaKm = fmtKm(gpxCumToRealKm(nearestOnRoute(note.lat, note.lng).cum)); } catch(e){}
+  }
   closeEditModal();
   if(toUpload.length === 0) { finish([]); }
   else {
     showSync('⏳ Nahrávám fotky (0/' + toUpload.length + ')...');
     uploadPhotosToGitHub(toUpload,
       function(done,total){ showSync('⏳ Nahrávám fotky (' + done + '/' + total + ')...'); },
-      function(urls){ finish(urls); });
+      function(urls){ finish(urls); },
+      {km: editMetaKm, author: author});
   }
 }
 
