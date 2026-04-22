@@ -2025,18 +2025,37 @@ function closeNoteDetail() {
   map.off('move zoom moveend', updateArrowPosition);
 }
 
-function openPhotoFs(src) {
+var _photoFsKey = null;
+
+function openPhotoFs(src, firebaseKey) {
   var url = (typeof src === 'string') ? src : src.src;
   document.getElementById('photo-fs-img').src = url;
   var ob = document.getElementById('photo-fs-open');
   if(ob) ob.href = url;
+  _photoFsKey = firebaseKey || null;
+  var delBtn = document.getElementById('photo-fs-delete');
+  if(delBtn) delBtn.style.display = _photoFsKey ? 'inline-block' : 'none';
   document.getElementById('photo-fs').classList.add('open');
   unlockViewport();
 }
 
 function closePhotoFs() {
   document.getElementById('photo-fs').classList.remove('open');
+  _photoFsKey = null;
   lockViewport();
+}
+
+function deleteStandalonePhoto() {
+  if(!_photoFsKey) return;
+  if(!confirm('Smazat tuto fotku?')) return;
+  var key = _photoFsKey;
+  closePhotoFs();
+  db.ref('standalone_photos/' + key).remove()
+    .then(function() {
+      showToast('🗑️ Fotka smazána', 1500);
+      if(document.getElementById('gallery-modal').classList.contains('open')) renderGallery();
+    })
+    .catch(function() { showToast('❌ Chyba mazání', 2500); });
 }
 function lockViewport()  { document.querySelector('meta[name=viewport]').setAttribute('content','width=device-width, initial-scale=1.0, maximum-scale=1.0'); }
 function unlockViewport(){ document.querySelector('meta[name=viewport]').setAttribute('content','width=device-width, initial-scale=1.0, maximum-scale=5.0'); }
@@ -3004,7 +3023,7 @@ function renderGallery() {
   if(galleryTab === 0) {
     db.ref('standalone_photos').orderByChild('ts').once('value', function(snap) {
       var items = [];
-      snap.forEach(function(ch) { items.push(ch.val()); });
+      snap.forEach(function(ch) { var v = ch.val(); v.fbKey = ch.key; items.push(v); });
       items.reverse();
       if(items.length === 0) { empty.style.display = 'block'; return; }
       items.forEach(function(item) {
@@ -3012,7 +3031,7 @@ function renderGallery() {
         div.className = 'gallery-item';
         var img = document.createElement('img');
         img.src = item.url; img.loading = 'lazy';
-        img.onclick = function() { openPhotoFs(item.url); };
+        (function(it) { img.onclick = function() { openPhotoFs(it.url, it.fbKey); }; })(item);
         var meta = document.createElement('div');
         meta.className = 'gallery-item-meta';
         meta.textContent = (item.km ? 'km ' + item.km : '') + (item.km && item.date ? ' • ' : '') + (item.date || '');
@@ -3105,6 +3124,7 @@ function renderGallery() {
   <img id="photo-fs-img" src="" style="max-width:100%;max-height:calc(100% - 60px);object-fit:contain;">
   <div id="photo-fs-bar" style="position:absolute;bottom:0;left:0;right:0;display:flex;gap:10px;justify-content:center;padding:10px;background:rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
     <a id="photo-fs-open" href="#" target="_blank" rel="noopener" style="background:#1565c0;color:#fff;padding:8px 18px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:700;">&#128247; Otevřít / Uložit</a>
+    <button id="photo-fs-delete" onclick="deleteStandalonePhoto()" style="display:none;background:#e94560;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">&#128465; Smazat</button>
     <button onclick="closePhotoFs()" style="background:#333;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:14px;cursor:pointer;">Zavít</button>
   </div>
 </div>
