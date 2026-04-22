@@ -585,6 +585,23 @@ textarea.note-field { min-height:80px; resize:vertical; }
   filter:drop-shadow(0 0 2px rgba(0,0,0,.8));
 }
 
+
+/* -- Standalone foto galerie ----------------------------- */
+#gallery-modal { position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:4800; display:none; flex-direction:column; }
+#gallery-modal.open { display:flex; }
+#gallery-header { background:var(--panel); padding:12px 14px; padding-top:calc(12px + env(safe-area-inset-top)); display:flex; align-items:center; gap:10px; flex-shrink:0; border-bottom:1px solid var(--border); }
+#gallery-header h3 { flex:1; font-size:15px; font-weight:700; color:var(--accent2); }
+#gallery-close { background:none; border:none; color:var(--text2); font-size:22px; cursor:pointer; padding:4px 8px; }
+#gallery-tabs { display:flex; flex-shrink:0; background:var(--panel2); }
+.gallery-tab { flex:1; padding:10px; text-align:center; font-size:13px; font-weight:700; color:var(--text2); cursor:pointer; border-bottom:2px solid transparent; transition:all .2s; }
+.gallery-tab.active { color:var(--accent2); border-bottom-color:var(--accent2); }
+#gallery-body { flex:1; overflow-y:auto; padding:10px; -webkit-overflow-scrolling:touch; }
+.gallery-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; }
+.gallery-item { position:relative; aspect-ratio:1; cursor:pointer; }
+.gallery-item img { width:100%; height:100%; object-fit:cover; border-radius:6px; display:block; }
+.gallery-item-meta { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.6); color:#fff; font-size:9px; border-radius:0 0 6px 6px; padding:2px 4px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gallery-note-badge { position:absolute; top:3px; right:3px; background:rgba(233,69,96,0.85); color:#fff; font-size:9px; border-radius:3px; padding:1px 4px; }
+#gallery-empty { text-align:center; color:var(--text2); padding:40px 20px; font-size:14px; }
 </style>
 
 <script>
@@ -616,6 +633,8 @@ document.addEventListener('touchend', function(e){
 <div id="header">
   <h1>I/3 <span>Votice – Oldřichovec</span></h1>
   <div id="km-display">km –</div>
+  <button id="btn-standalone-foto" onclick="takeStandalonePhoto()" title="Vyfotit" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 10px;font-size:15px;cursor:pointer;">📷</button>
+  <button id="btn-gallery" onclick="openGallery()" title="Fotogalerie" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 10px;font-size:15px;cursor:pointer;">🖼️</button>
   <button id="btn-reset-view" onclick="resetMapView()" title="Reset pohledu" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 10px;font-size:15px;cursor:pointer;">⌂</button>
   <button id="btn-layers" onclick="toggleLayers()">☰ Vrstvy</button>
 </div>
@@ -1587,7 +1606,7 @@ function deleteNote_fromFirebase(noteId, callback) {
 function renderNoteMarkers() {
   // Vyčistit staré vrstvy
   if(!notesLayer) {
-    notesLayer = L.layerGroup(); // nepridavame do mapy - vychozi stav vypnuto
+    notesLayer = L.layerGroup(); // vychozi stav vypnuto
     layerGroups.notes = notesLayer;
   } else {
     notesLayer.clearLayers();
@@ -1772,23 +1791,19 @@ function getGithubToken() {
 }
 var GITHUB_TOKEN = getGithubToken();
 
-// -- Burn-in metadata do fotky (km, datum, autor) --------
+// -- Burn-in metadata do fotky --------
 function burnInMetadata(dataUrl, km, author, callback) {
   var img = new Image();
   img.onload = function() {
     var canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
+    canvas.width = img.width; canvas.height = img.height;
     var ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0);
-
     var dnes = new Date().toLocaleDateString('cs-CZ');
     var line1 = 'km ' + (km || '-') + '   •   ' + dnes;
     var line2 = author || '';
-
     var fontSize = Math.max(20, Math.round(img.width / 40));
     ctx.font = 'bold ' + fontSize + 'px Arial, sans-serif';
-
     var pad = Math.round(fontSize * 0.6);
     var lineH = Math.round(fontSize * 1.45);
     var textW = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width);
@@ -1796,22 +1811,15 @@ function burnInMetadata(dataUrl, km, author, callback) {
     var boxH = lineH * 2 + pad;
     var boxX = img.width - boxW - pad;
     var boxY = img.height - boxH - pad;
-
-    // Polopruhledny cerny pruh
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     if(ctx.roundRect) { ctx.beginPath(); ctx.roundRect(boxX, boxY, boxW, boxH, 6); ctx.fill(); }
     else { ctx.fillRect(boxX, boxY, boxW, boxH); }
-
-    // Bily text - radek 1 tucny
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold ' + fontSize + 'px Arial, sans-serif';
     ctx.fillText(line1, boxX + pad, boxY + lineH * 0.85);
-
-    // Radek 2 normalni
     ctx.font = fontSize + 'px Arial, sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.88)';
     ctx.fillText(line2, boxX + pad, boxY + lineH * 1.88);
-
     callback(canvas.toDataURL('image/jpeg', 0.88));
   };
   img.src = dataUrl;
@@ -1856,9 +1864,7 @@ function uploadPhotosToGitHub(items, onProgress, onDone, meta) {
     }
     if(meta && (meta.km || meta.author)) {
       burnInMetadata(src, meta.km, meta.author, doUpload);
-    } else {
-      doUpload(src);
-    }
+    } else { doUpload(src); }
   }
   next();
 }
@@ -2919,6 +2925,130 @@ function updatePrikopLabel(id, stav) {
   }
 }
 
+
+// ── Standalone fotogalerie ─────────────────────────────
+
+var galleryTab = 0;
+
+function takeStandalonePhoto() {
+  if(!gpsActive || !gpsMarker) {
+    showToast('⚠️ Zapni si GPS!', 3000);
+    return;
+  }
+  document.getElementById('standalone-photo-input').click();
+}
+
+window.addEventListener('load', function() {
+  var inp = document.getElementById('standalone-photo-input');
+  if(!inp) return;
+  inp.addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if(!file) return;
+    e.target.value = '';
+    if(!gpsActive || !gpsMarker) { showToast('⚠️ GPS neni dostupna!', 3000); return; }
+    var latlng = gpsMarker.getLatLng();
+    var km = null;
+    try { km = fmtKm(gpxCumToRealKm(nearestOnRoute(latlng.lat, latlng.lng).cum)); } catch(ex){}
+    var author = localStorage.getItem('noteAuthor') || '';
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      compressImage(ev.target.result, function(compressed) {
+        burnInMetadata(compressed, km, author, function(withMeta) {
+          var filename = 'standalone/foto_' + Date.now() + '.jpg';
+          showSync('⏳ Nahrávám fotku...');
+          uploadPhotoToGitHub(withMeta, filename, function(url) {
+            if(!url) return;
+            var entry = {
+              url: url, km: km, author: author,
+              lat: latlng.lat, lng: latlng.lng,
+              time: new Date().toLocaleString('cs-CZ'),
+              date: new Date().toLocaleDateString('cs-CZ'),
+              ts: Date.now()
+            };
+            var key = Date.now().toString();
+            db.ref('standalone_photos/' + key).set(entry)
+              .then(function() { showToast('✅ Fotka uložena!', 2000); })
+              .catch(function() { showToast('❌ Chyba uložení', 2500); });
+          });
+        });
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+});
+
+function openGallery() {
+  document.getElementById('gallery-modal').classList.add('open');
+  unlockViewport();
+  renderGallery();
+}
+
+function closeGallery() {
+  document.getElementById('gallery-modal').classList.remove('open');
+  lockViewport();
+}
+
+function switchGalleryTab(tab) {
+  galleryTab = tab;
+  document.getElementById('gtab-0').classList.toggle('active', tab === 0);
+  document.getElementById('gtab-1').classList.toggle('active', tab === 1);
+  renderGallery();
+}
+
+function renderGallery() {
+  var grid = document.getElementById('gallery-grid');
+  var empty = document.getElementById('gallery-empty');
+  grid.innerHTML = '';
+  empty.style.display = 'none';
+
+  if(galleryTab === 0) {
+    db.ref('standalone_photos').orderByChild('ts').once('value', function(snap) {
+      var items = [];
+      snap.forEach(function(ch) { items.push(ch.val()); });
+      items.reverse();
+      if(items.length === 0) { empty.style.display = 'block'; return; }
+      items.forEach(function(item) {
+        var div = document.createElement('div');
+        div.className = 'gallery-item';
+        var img = document.createElement('img');
+        img.src = item.url; img.loading = 'lazy';
+        img.onclick = function() { openPhotoFs(item.url); };
+        var meta = document.createElement('div');
+        meta.className = 'gallery-item-meta';
+        meta.textContent = (item.km ? 'km ' + item.km : '') + (item.km && item.date ? ' • ' : '') + (item.date || '');
+        div.appendChild(img); div.appendChild(meta);
+        grid.appendChild(div);
+      });
+    });
+  } else {
+    var items = [];
+    notesData.forEach(function(note) {
+      (note.photos || []).forEach(function(url) {
+        var km = null;
+        try { km = fmtKm(gpxCumToRealKm(nearestOnRoute(note.lat, note.lng).cum)); } catch(e){}
+        items.push({ url: url, km: km, author: note.author, noteId: note.id, time: note.time });
+      });
+    });
+    items.reverse();
+    if(items.length === 0) { empty.style.display = 'block'; return; }
+    items.forEach(function(item) {
+      var div = document.createElement('div');
+      div.className = 'gallery-item';
+      var img = document.createElement('img');
+      img.src = item.url; img.loading = 'lazy';
+      img.onclick = function() { openPhotoFs(item.url); };
+      var badge = document.createElement('div');
+      badge.className = 'gallery-note-badge'; badge.textContent = '📌';
+      badge.onclick = function(e) { e.stopPropagation(); closeGallery(); openNoteDetail(item.noteId); };
+      var meta = document.createElement('div');
+      meta.className = 'gallery-item-meta';
+      meta.textContent = (item.km ? 'km ' + item.km : '') + (item.km && item.author ? ' • ' : '') + (item.author || '');
+      div.appendChild(img); div.appendChild(badge); div.appendChild(meta);
+      grid.appendChild(div);
+    });
+  }
+}
+
 </script>
 
 <!-- Nová poznámka -->
@@ -2976,6 +3106,26 @@ function updatePrikopLabel(id, stav) {
   <div id="photo-fs-bar" style="position:absolute;bottom:0;left:0;right:0;display:flex;gap:10px;justify-content:center;padding:10px;background:rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
     <a id="photo-fs-open" href="#" target="_blank" rel="noopener" style="background:#1565c0;color:#fff;padding:8px 18px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:700;">&#128247; Otevřít / Uložit</a>
     <button onclick="closePhotoFs()" style="background:#333;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:14px;cursor:pointer;">Zavít</button>
+  </div>
+</div>
+
+
+<!-- Standalone foto input -->
+<input type="file" id="standalone-photo-input" accept="image/*" capture="environment" style="display:none">
+
+<!-- Fotogalerie modal -->
+<div id="gallery-modal">
+  <div id="gallery-header">
+    <h3>Fotogalerie</h3>
+    <button id="gallery-close" onclick="closeGallery()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:4px 8px;">&#x2715;</button>
+  </div>
+  <div id="gallery-tabs">
+    <div class="gallery-tab active" id="gtab-0" onclick="switchGalleryTab(0)">&#128247; Samostatné</div>
+    <div class="gallery-tab" id="gtab-1" onclick="switchGalleryTab(1)">&#128204; Z poznámek</div>
+  </div>
+  <div id="gallery-body">
+    <div id="gallery-empty" style="text-align:center;color:var(--text2);padding:40px 20px;font-size:14px;">Zatím žádné fotky</div>
+    <div class="gallery-grid" id="gallery-grid"></div>
   </div>
 </div>
 
