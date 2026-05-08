@@ -1581,21 +1581,52 @@ function hideSync() { document.getElementById('sync-indicator').classList.remove
 
 // ── Firebase funkce ────────────────────────────────────
 function loadNotes() {
-  showSync('⏳ Načítám poznámky...');
-  db.ref('poznamky').on('value', function(snapshot) {
-    notesData = [];
-    var val = snapshot.val();
-    if(val) {
-      Object.keys(val).forEach(function(key) {
-        notesData.push(val[key]);
-      });
-    }
-    hideSync();
+  // Nacitame jen zakladni data pro markery - bez textu a fotek
+  // Plna data se nacitaji az pri otevreni detailu
+  db.ref('poznamky').on('child_added', function(snap) {
+    var note = snap.val();
+    if(!note || !note.id) return;
+    // Ulozit jen metadata potrebna pro marker
+    var stub = {
+      id: note.id, lat: note.lat, lng: note.lng,
+      cat: note.cat, author: note.author, nazev: note.nazev,
+      time: note.time, _stub: true
+    };
+    // Pridat nebo nahradit
+    var idx = notesData.findIndex(function(n){ return n.id === stub.id; });
+    if(idx >= 0) notesData[idx] = Object.assign(notesData[idx], stub);
+    else notesData.push(stub);
     renderNoteMarkers();
   }, function(error) {
     console.error('Firebase chyba:', error);
-    hideSync();
     showToast('⚠️ Poznámky se nepodařilo načíst', 3000);
+  });
+
+  // Sleduj zmeny a mazani
+  db.ref('poznamky').on('child_changed', function(snap) {
+    var note = snap.val();
+    if(!note || !note.id) return;
+    var idx = notesData.findIndex(function(n){ return n.id === note.id; });
+    if(idx >= 0) {
+      // Zachovat nacitana plna data pokud uz existuji
+      var existing = notesData[idx];
+      notesData[idx] = existing._stub ? Object.assign({}, note, {_stub: true,
+        id: note.id, lat: note.lat, lng: note.lng,
+        cat: note.cat, author: note.author, nazev: note.nazev, time: note.time
+      }) : note;
+    } else {
+      notesData.push(note);
+    }
+    renderNoteMarkers();
+    // Pokud je detail otevreny pro tuto poznamku, aktualizuj ho
+    if(currentNoteId === note.id) openNoteDetail(note.id);
+  });
+
+  db.ref('poznamky').on('child_removed', function(snap) {
+    var id = snap.val() && snap.val().id;
+    if(!id) id = snap.key;
+    notesData = notesData.filter(function(n){ return n.id !== id; });
+    renderNoteMarkers();
   });
 }
 
@@ -1605,6 +1636,11 @@ function saveNote_toFirebase(note, callback) {
     .then(function() {
       hideSync();
       showToast('✅ Uloženo', 1500);
+      // Ulozit plna data lokalne (uz nejsou stub)
+      var idx = notesData.findIndex(function(n){ return n.id === note.id; });
+      if(idx >= 0) notesData[idx] = note;
+      else notesData.push(note);
+      renderNoteMarkers();
       if(callback) callback();
     })
     .catch(function(e) {
@@ -1964,6 +2000,21 @@ function openNoteDetail(id) {
   var note = notesData.filter(function(n){ return n.id === id; })[0];
   if(!note) return;
   currentNoteId = id;
+
+  // Lazy load - pokud mame jen stub, nacist plna data
+  if(note._stub) {
+    showSync('⏳ Načítám...');
+    db.ref('poznamky/' + id).once('value', function(snap) {
+      hideSync();
+      var full = snap.val();
+      if(!full) return;
+      var idx = notesData.findIndex(function(n){ return n.id === id; });
+      if(idx >= 0) notesData[idx] = full;
+      else notesData.push(full);
+      openNoteDetail(id); // rekurze s plnymi daty
+    });
+    return;
+  }
   var cat = NOTE_CATS[note.cat] || NOTE_CATS[0];
 
   var catEl = document.getElementById('note-detail-cat');
