@@ -835,45 +835,46 @@ var CALIB_POINTS = [
 ];
 
 // ── DOKUMENTY podle km ──────────────────
+// Obsah souborů je nyní RDS (Realizační dokumentace stavby). Názvy souborů ponechány PDPS pro kompatibilitu.
 var DOCS_SITUACE = [
-  {kmOd:31.450, kmDo:32.765, soubor:'situace_31_450_až_32_765.pdf', nazev:'Situace SO 101.1'},
-  {kmOd:32.766, kmDo:34.160, soubor:'situace_32_766_až_34_16.pdf',  nazev:'Situace SO 101.2 č.1'},
-  {kmOd:34.161, kmDo:35.100, soubor:'situace_34_161_až_35_100.pdf', nazev:'Situace SO 101.2 č.2'},
-  {kmOd:35.101, kmDo:35.940, soubor:'situace_35_101_až_35_940.pdf', nazev:'Situace SO 101.3 č.3'},
-  {kmOd:35.941, kmDo:37.356, soubor:'situace_35_941_až_37_35.pdf',  nazev:'Situace SO 101.3 č.4'},
+  {kmOd:31.450, kmDo:32.765, soubor:'situace_31_450_až_32_765.pdf', nazev:'Situace SO 101.1 (RDS)'},
+  {kmOd:32.766, kmDo:34.160, soubor:'situace_32_766_až_34_16.pdf',  nazev:'Situace SO 101.2 č.1 (RDS)'},
+  {kmOd:34.161, kmDo:35.100, soubor:'situace_34_161_až_35_100.pdf', nazev:'Situace SO 101.2/101.3 č.2 (RDS)'},
+  {kmOd:35.101, kmDo:35.940, soubor:'situace_35_101_až_35_940.pdf', nazev:'Situace SO 101.3 č.3 (RDS)'},
+  {kmOd:35.941, kmDo:37.356, soubor:'situace_35_941_až_37_35.pdf',  nazev:'Situace SO 101.3 č.4 (RDS)'},
 ];
 var DOCS_PP = [
-  {kmOd:31.450, kmDo:32.765, soubor:'PP_31_450_až_32_765.pdf', nazev:'Podélný profil SO 101.1'},
-  {kmOd:32.766, kmDo:34.160, soubor:'PP_32_766_až_34_16.pdf',  nazev:'Podélný profil č.1'},
-  {kmOd:34.161, kmDo:35.100, soubor:'PP_34_161_až_35_100.pdf', nazev:'Podélný profil č.2'},
-  {kmOd:35.101, kmDo:35.940, soubor:'PP_35_101_až_35_940.pdf', nazev:'Podélný profil č.3'},
-  {kmOd:35.941, kmDo:37.356, soubor:'PP_35_941_až_37_35.pdf',  nazev:'Podélný profil č.4'},
+  {kmOd:31.450, kmDo:32.765, soubor:'PP_31_450_až_32_765.pdf', nazev:'Podélný profil SO 101.1 (RDS)'},
+  {kmOd:32.766, kmDo:34.160, soubor:'PP_32_766_až_34_16.pdf',  nazev:'Podélný profil č.1 (RDS)'},
+  {kmOd:34.161, kmDo:35.100, soubor:'PP_34_161_až_35_100.pdf', nazev:'Podélný profil č.2 (RDS)'},
+  {kmOd:35.101, kmDo:35.940, soubor:'PP_35_101_až_35_940.pdf', nazev:'Podélný profil č.3 (RDS)'},
+  {kmOd:35.941, kmDo:37.356, soubor:'PP_35_941_až_37_35.pdf',  nazev:'Podélný profil č.4 (RDS)'},
 ];
 var DOCS_VPR = [
-  {kmOd:31.450, kmDo:32.765, soubor:'101_1_04_Vzorove_pricne_rezy.pdf',               nazev:'Vzorové příčné řezy SO 101.1'},
-  {kmOd:32.766, kmDo:34.615, soubor:'101_2_3_04_1_Vzorove_pricne_rezy_SO_101_2.pdf',  nazev:'Vzorové příčné řezy SO 101.2'},
-  {kmOd:34.615, kmDo:37.356, soubor:'101_2_3_04_2_Vzorove_pricne_rezy_SO_101_3.pdf',  nazev:'Vzorové příčné řezy SO 101.3'},
+  {kmOd:31.450, kmDo:32.765, soubor:'101_1_04_Vzorove_pricne_rezy.pdf',               nazev:'Vzorové příčné řezy SO 101.1 (RDS)'},
+  {kmOd:32.766, kmDo:34.615, soubor:'101_2_3_04_1_Vzorove_pricne_rezy_SO_101_2.pdf',  nazev:'Vzorové příčné řezy SO 101.2 (RDS)'},
+  {kmOd:34.615, kmDo:37.356, soubor:'101_2_3_04_2_Vzorove_pricne_rezy_SO_101_3.pdf',  nazev:'Vzorové příčné řezy SO 101.3 (RDS)'},
 ];
 
 var PROPUSTKY = [
-  {id:'P1',  km:33.342, soubor:'102_02_01_Propustek_km_33_342_P1.pdf',  nazev:'Propustek P1 — km 33,342'},
-  {id:'P2',  km:33.377, soubor:'102_02_02_Propustek_km_33_377_P2.pdf',  nazev:'Propustek P2 — km 33,377'},
-  {id:'P3',  km:33.838, soubor:'102_02_03_Propustek_km_33_838_P3.pdf',  nazev:'Propustek P3 — km 33,838'},
-  {id:'P4',  km:34.229, soubor:'102_02_04_Propustek_km_34_229_P4.pdf',  nazev:'Propustek P4 — km 34,229'},
-  {id:'P7',  km:35.389, soubor:'102_02_05_Propustek_km_35_389_P7.pdf',  nazev:'Propustek P7 — km 35,389'},
-  {id:'P8',  km:35.592, soubor:'102_02_06_Propustek_km_35_592_P8.pdf',  nazev:'Propustek P8 — km 35,592'},
-  {id:'P13', km:36.589, soubor:'102_02_07_Propustek_km_36_589_P13.pdf', nazev:'Propustek P13 — km 36,589'},
-  {id:'P14', km:35.123, soubor:'102_02_08_Propustek_km_35_123_P14.pdf', nazev:'Propustek P14 — km 35,123'},
-  {id:'P15', km:36.183, soubor:'102_02_09_Propustek_km_36_183_P15.pdf', nazev:'Propustek P15 — km 36,183'},
+  {id:'P1',  km:33.342, soubor:'102_02_01_Propustek_km_33_342_P1.pdf',  nazev:'Propustek P1 — km 33,342 (RDS)'},
+  {id:'P2',  km:33.377, soubor:'102_02_02_Propustek_km_33_377_P2.pdf',  nazev:'Propustek P2 — km 33,377 (RDS)'},
+  {id:'P3',  km:33.838, soubor:'102_02_03_Propustek_km_33_838_P3.pdf',  nazev:'Propustek P3 — km 33,838 (RDS)'},
+  {id:'P4',  km:34.229, soubor:'102_02_04_Propustek_km_34_229_P4.pdf',  nazev:'Propustek P4 — km 34,229 (RDS)'},
+  {id:'P7',  km:35.389, soubor:'102_02_05_Propustek_km_35_389_P7.pdf',  nazev:'Propustek P7 — km 35,389 (RDS)'},
+  {id:'P8',  km:35.592, soubor:'102_02_06_Propustek_km_35_592_P8.pdf',  nazev:'Propustek P8 — km 35,592 (RDS)'},
+  {id:'P13', km:36.589, soubor:'102_02_07_Propustek_km_36_589_P13.pdf', nazev:'Propustek P13 — km 36,589 (RDS)'},
+  {id:'P14', km:35.123, soubor:'102_02_08_Propustek_km_35_123_P14.pdf', nazev:'Propustek P14 — km 35,123 (RDS)'},
+  {id:'P15', km:36.183, soubor:'102_02_09_Propustek_km_36_183_P15.pdf', nazev:'Propustek P15 — km 36,183 (RDS)'},
 ];
 var PROPUSTEK_TZ = '102_01_Technicka_zprava_proputsky.pdf';
 
 var DOCS_DZ = [
-  {kmOd:31.450, kmDo:32.765, soubor:'situace_DZ_31_450_až_32_765.pdf', nazev:'Situace DZ č.1 — km 31,450–32,765'},
-  {kmOd:32.766, kmDo:34.160, soubor:'situace_DZ_32_766_až_34_16.pdf',  nazev:'Situace DZ č.2 — km 32,766–34,160'},
-  {kmOd:34.161, kmDo:35.100, soubor:'situace_DZ_34_161_až_35_100.pdf', nazev:'Situace DZ č.3 — km 34,161–35,100'},
-  {kmOd:35.101, kmDo:35.940, soubor:'situace_DZ_35_101_až_35_940.pdf', nazev:'Situace DZ č.4 — km 35,101–35,940'},
-  {kmOd:35.941, kmDo:37.356, soubor:'situace_DZ_35_941_až_37_35.pdf',  nazev:'Situace DZ č.5 — km 35,941–37,356'},
+  {kmOd:31.450, kmDo:32.765, soubor:'situace_DZ_31_450_až_32_765.pdf', nazev:'Situace DZ č.1 — km 31,450–32,765 (RDS)'},
+  {kmOd:32.766, kmDo:34.160, soubor:'situace_DZ_32_766_až_34_16.pdf',  nazev:'Situace DZ č.2 — km 32,766–34,160 (RDS)'},
+  {kmOd:34.161, kmDo:35.100, soubor:'situace_DZ_34_161_až_35_100.pdf', nazev:'Situace DZ č.3 — km 34,161–35,100 (RDS)'},
+  {kmOd:35.101, kmDo:35.940, soubor:'situace_DZ_35_101_až_35_940.pdf', nazev:'Situace DZ č.4 — km 35,101–35,940 (RDS)'},
+  {kmOd:35.941, kmDo:37.356, soubor:'situace_DZ_35_941_až_37_35.pdf',  nazev:'Situace DZ č.5 — km 35,941–37,356 (RDS)'},
 ];
 
 // Pracovní příčné řezy – každý záznam: {km, soubor, rezIdx}
@@ -1581,52 +1582,21 @@ function hideSync() { document.getElementById('sync-indicator').classList.remove
 
 // ── Firebase funkce ────────────────────────────────────
 function loadNotes() {
-  // Nacitame jen zakladni data pro markery - bez textu a fotek
-  // Plna data se nacitaji az pri otevreni detailu
-  db.ref('poznamky').on('child_added', function(snap) {
-    var note = snap.val();
-    if(!note || !note.id) return;
-    // Ulozit jen metadata potrebna pro marker
-    var stub = {
-      id: note.id, lat: note.lat, lng: note.lng,
-      cat: note.cat, author: note.author, nazev: note.nazev,
-      time: note.time, _stub: true
-    };
-    // Pridat nebo nahradit
-    var idx = notesData.findIndex(function(n){ return n.id === stub.id; });
-    if(idx >= 0) notesData[idx] = Object.assign(notesData[idx], stub);
-    else notesData.push(stub);
+  showSync('⏳ Načítám poznámky...');
+  db.ref('poznamky').on('value', function(snapshot) {
+    notesData = [];
+    var val = snapshot.val();
+    if(val) {
+      Object.keys(val).forEach(function(key) {
+        notesData.push(val[key]);
+      });
+    }
+    hideSync();
     renderNoteMarkers();
   }, function(error) {
     console.error('Firebase chyba:', error);
+    hideSync();
     showToast('⚠️ Poznámky se nepodařilo načíst', 3000);
-  });
-
-  // Sleduj zmeny a mazani
-  db.ref('poznamky').on('child_changed', function(snap) {
-    var note = snap.val();
-    if(!note || !note.id) return;
-    var idx = notesData.findIndex(function(n){ return n.id === note.id; });
-    if(idx >= 0) {
-      // Zachovat nacitana plna data pokud uz existuji
-      var existing = notesData[idx];
-      notesData[idx] = existing._stub ? Object.assign({}, note, {_stub: true,
-        id: note.id, lat: note.lat, lng: note.lng,
-        cat: note.cat, author: note.author, nazev: note.nazev, time: note.time
-      }) : note;
-    } else {
-      notesData.push(note);
-    }
-    renderNoteMarkers();
-    // Pokud je detail otevreny pro tuto poznamku, aktualizuj ho
-    if(currentNoteId === note.id) openNoteDetail(note.id);
-  });
-
-  db.ref('poznamky').on('child_removed', function(snap) {
-    var id = snap.val() && snap.val().id;
-    if(!id) id = snap.key;
-    notesData = notesData.filter(function(n){ return n.id !== id; });
-    renderNoteMarkers();
   });
 }
 
@@ -1636,11 +1606,6 @@ function saveNote_toFirebase(note, callback) {
     .then(function() {
       hideSync();
       showToast('✅ Uloženo', 1500);
-      // Ulozit plna data lokalne (uz nejsou stub)
-      var idx = notesData.findIndex(function(n){ return n.id === note.id; });
-      if(idx >= 0) notesData[idx] = note;
-      else notesData.push(note);
-      renderNoteMarkers();
       if(callback) callback();
     })
     .catch(function(e) {
@@ -2000,21 +1965,6 @@ function openNoteDetail(id) {
   var note = notesData.filter(function(n){ return n.id === id; })[0];
   if(!note) return;
   currentNoteId = id;
-
-  // Lazy load - pokud mame jen stub, nacist plna data
-  if(note._stub) {
-    showSync('⏳ Načítám...');
-    db.ref('poznamky/' + id).once('value', function(snap) {
-      hideSync();
-      var full = snap.val();
-      if(!full) return;
-      var idx = notesData.findIndex(function(n){ return n.id === id; });
-      if(idx >= 0) notesData[idx] = full;
-      else notesData.push(full);
-      openNoteDetail(id); // rekurze s plnymi daty
-    });
-    return;
-  }
   var cat = NOTE_CATS[note.cat] || NOTE_CATS[0];
 
   var catEl = document.getElementById('note-detail-cat');
