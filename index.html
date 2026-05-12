@@ -2997,12 +2997,82 @@ function updatePrikopLabel(id, stav) {
 
 var galleryTab = 0;
 
+// ── Multi-shot focení (série fotek) ─────────────────────
+// photoBatch = fronta připravených fotek čekajících na nahrání.
+// Každá položka: {image (dataUrl), km, author, lat, lng, ts}
+var photoBatch = [];
+
 function takeStandalonePhoto() {
   if(!gpsActive || !gpsMarker) {
     showToast('⚠️ Zapni si GPS!', 3000);
     return;
   }
+  // Klik na file input – platí pro fresh i opakované focení v sérii
   document.getElementById('standalone-photo-input').click();
+}
+
+function updatePhotoBatchPanel() {
+  var panel = document.getElementById('photo-batch-panel');
+  var cnt   = document.getElementById('photo-batch-count');
+  if(!panel || !cnt) return;
+  if(photoBatch.length > 0) {
+    cnt.textContent = photoBatch.length;
+    panel.style.display = 'block';
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+// "Další foto" – znovu otevře fotoaparát (čerstvé klikové gesto)
+function batchTakeNext() {
+  if(!gpsActive || !gpsMarker) { showToast('⚠️ GPS neni dostupna!', 3000); return; }
+  document.getElementById('standalone-photo-input').click();
+}
+
+// "Hotovo" – nahraje všechny fotky ve frontě postupně
+function batchUploadAll() {
+  if(photoBatch.length === 0) { updatePhotoBatchPanel(); return; }
+  var total = photoBatch.length;
+  var done = 0, failed = 0;
+  var queue = photoBatch.slice();
+  photoBatch = []; // hned vyprázdním, aby další focení neinterferovaly
+  updatePhotoBatchPanel();
+
+  function next() {
+    if(queue.length === 0) {
+      hideSync();
+      if(failed === 0) showToast('✅ ' + done + ' fotek uloženo', 2500);
+      else showToast('⚠️ Nahráno ' + done + '/' + total + ' (' + failed + ' selhalo)', 3500);
+      return;
+    }
+    var item = queue.shift();
+    showSync('⏳ Nahrávám ' + (done + failed + 1) + ' / ' + total + '…');
+    var filename = 'standalone/foto_' + item.ts + '_' + (done + failed) + '.jpg';
+    uploadPhotoToGitHub(item.image, filename, function(url) {
+      if(!url) { failed++; next(); return; }
+      var entry = {
+        url: url, km: item.km, author: item.author,
+        lat: item.lat, lng: item.lng,
+        time: new Date(item.ts).toLocaleString('cs-CZ'),
+        date: new Date(item.ts).toLocaleDateString('cs-CZ'),
+        ts: item.ts
+      };
+      var key = item.ts.toString() + '_' + (done + failed);
+      db.ref('standalone_photos/' + key).set(entry)
+        .then(function(){ done++; next(); })
+        .catch(function(){ failed++; next(); });
+    });
+  }
+  next();
+}
+
+// Zrušit celou sérii (smaže rozpracované, nic se nenahraje)
+function batchCancel() {
+  if(photoBatch.length === 0) return;
+  if(!confirm('Zahodit ' + photoBatch.length + ' rozpracovaných fotek?')) return;
+  photoBatch = [];
+  updatePhotoBatchPanel();
+  showToast('🗑️ Série zahozena', 1500);
 }
 
 window.addEventListener('load', function() {
@@ -3010,40 +3080,31 @@ window.addEventListener('load', function() {
   if(!inp) return;
   inp.addEventListener('change', function(e) {
     var file = e.target.files[0];
-    if(!file) return;
+    if(!file) return; // uživatel zrušil camera – ponech sérii beze změny
     e.target.value = '';
     if(!gpsActive || !gpsMarker) { showToast('⚠️ GPS neni dostupna!', 3000); return; }
     var latlng = gpsMarker.getLatLng();
     var km = null;
     try { km = fmtKm(gpxCumToRealKm(nearestOnRoute(latlng.lat, latlng.lng).cum)); } catch(ex){}
     var author = localStorage.getItem('noteAuthor') || '';
-    // Ptáme se pokaždé: chceš vypálit km/datum/autora do obrázku?
-    var withKmStamp = confirm('Vypálit km ' + (km || '-') + ' a datum přímo do fotky?\n\nOK = ano (popisek bude vidět v každém prohlížeči)\nZrušit = ne (fotka zůstane bez popisku, km se uloží jen do databáze)');
+    // Ptáme se před každou fotkou
+    var withKmStamp = confirm('Vypálit km ' + (km || '-') + ' a datum přímo do této fotky?\n\nOK = ano (popisek bude vidět v každém prohlížeči)\nZrušit = ne (fotka zůstane bez popisku, km se uloží jen do databáze)');
     var reader = new FileReader();
     reader.onload = function(ev) {
       compressImage(ev.target.result, function(compressed) {
-        var afterBurn = function(image) {
-          var filename = 'standalone/foto_' + Date.now() + '.jpg';
-          showSync('⏳ Nahrávám fotku...');
-          uploadPhotoToGitHub(image, filename, function(url) {
-            if(!url) return;
-            var entry = {
-              url: url, km: km, author: author,
-              lat: latlng.lat, lng: latlng.lng,
-              time: new Date().toLocaleString('cs-CZ'),
-              date: new Date().toLocaleDateString('cs-CZ'),
-              ts: Date.now()
-            };
-            var key = Date.now().toString();
-            db.ref('standalone_photos/' + key).set(entry)
-              .then(function() { showToast('✅ Fotka uložena!', 2000); })
-              .catch(function() { showToast('❌ Chyba uložení', 2500); });
+        var addToBatch = function(image) {
+          photoBatch.push({
+            image: image, km: km, author: author,
+            lat: latlng.lat, lng: latlng.lng,
+            ts: Date.now()
           });
+          updatePhotoBatchPanel();
+          showToast('📷 Fotka ' + photoBatch.length + ' přidána do série', 1500);
         };
         if(withKmStamp) {
-          burnInMetadata(compressed, km, author, afterBurn);
+          burnInMetadata(compressed, km, author, addToBatch);
         } else {
-          afterBurn(compressed);
+          addToBatch(compressed);
         }
       });
     };
@@ -3187,6 +3248,16 @@ function renderGallery() {
 
 <!-- Standalone foto input -->
 <input type="file" id="standalone-photo-input" accept="image/*" capture="environment" style="display:none">
+
+<!-- Mini panel pro multi-shot focení (zobrazí se, když je v sérii alespoň 1 fotka) -->
+<div id="photo-batch-panel" style="position:fixed;right:10px;bottom:90px;z-index:3000;display:none;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 6px 20px rgba(0,0,0,.5);min-width:160px;">
+  <div style="font-size:13px;color:var(--text);margin-bottom:10px;text-align:center;font-weight:600;">
+    📷 Série: <span id="photo-batch-count">0</span> fot.
+  </div>
+  <button onclick="batchTakeNext()" style="display:block;width:100%;margin-bottom:6px;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:14px;cursor:pointer;font-weight:600;">📷 Další foto</button>
+  <button onclick="batchUploadAll()" style="display:block;width:100%;margin-bottom:6px;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;cursor:pointer;font-weight:700;">✓ Hotovo – nahrát</button>
+  <button onclick="batchCancel()" style="display:block;width:100%;background:transparent;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:6px;font-size:12px;cursor:pointer;">🗑️ Zahodit sérii</button>
+</div>
 
 <!-- Fotogalerie modal -->
 <div id="gallery-modal">
