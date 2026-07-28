@@ -10,6 +10,8 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <!-- Plugin pro otáčení mapy dvěma prsty (pinch-rotate) + kompas -->
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
+<!-- JSZip pro hromadné stažení fotek z galerie -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 :root {
@@ -3184,6 +3186,138 @@ function renderGallery() {
   }
 }
 
+// ── Hromadné stažení fotek z galerie do ZIPu ────────────
+function collectGalleryItems(callback) {
+  if(galleryTab === 0) {
+    db.ref('standalone_photos').orderByChild('ts').once('value', function(snap) {
+      var items = [];
+      snap.forEach(function(ch) {
+        var v = ch.val();
+        items.push({ url: v.url, km: v.km || null, author: v.author || '', ts: v.ts || 0, date: v.date || '', time: v.time || '' });
+      });
+      callback(items);
+    }, function(){ callback([]); });
+  } else {
+    var items = [];
+    notesData.forEach(function(note) {
+      (note.photos || []).forEach(function(url) {
+        var km = null;
+        try { km = fmtKm(gpxCumToRealKm(nearestOnRoute(note.lat, note.lng).cum)); } catch(e){}
+        items.push({ url: url, km: km, author: note.author || '', ts: 0, date: '', time: note.time || '' });
+      });
+    });
+    callback(items);
+  }
+}
+
+function safeName(s) {
+  return String(s || '').replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function pickExt(url, fallback) {
+  var m = /\.([A-Za-z0-9]{2,5})(?:\?|$)/.exec(url || '');
+  return m ? m[1].toLowerCase() : (fallback || 'jpg');
+}
+
+function downloadGalleryZip() {
+  if(typeof JSZip === 'undefined') {
+    alert('Knihovna JSZip se nenačetla — zkontroluj internetové připojení a načti stránku znovu.');
+    return;
+  }
+  var btn = document.getElementById('gallery-download-all');
+  if(btn) { btn.disabled = true; btn.textContent = '⏳ Připravuji…'; }
+  showSync('⏳ Sbírám fotky…');
+
+  collectGalleryItems(function(items) {
+    if(!items.length) {
+      hideSync();
+      if(btn) { btn.disabled = false; btn.textContent = '⬇️ Stáhnout ZIP'; }
+      alert('V této záložce žádné fotky nejsou.');
+      return;
+    }
+
+    var zip = new JSZip();
+    var total = items.length;
+    var done = 0, failed = 0;
+    var usedNames = {};
+
+    function buildName(item, idx) {
+      // Preferuj km + datum + pořadí; fallback timestamp
+      var kmPart = item.km ? 'km_' + safeName(item.km) : 'bezkm';
+      var dt;
+      if(item.ts) {
+        var d = new Date(item.ts);
+        dt = d.getFullYear() +
+             String(d.getMonth()+1).padStart(2,'0') +
+             String(d.getDate()).padStart(2,'0') + '_' +
+             String(d.getHours()).padStart(2,'0') +
+             String(d.getMinutes()).padStart(2,'0') +
+             String(d.getSeconds()).padStart(2,'0');
+      } else {
+        // date je typu "12. 5. 2026", udelame kompaktni
+        dt = safeName(item.date || item.time || 'foto');
+      }
+      var author = item.author ? '_' + safeName(item.author) : '';
+      var ext = pickExt(item.url, 'jpg');
+      var base = kmPart + '_' + dt + author;
+      var name = base + '.' + ext;
+      // zajistit unikátnost
+      var suf = 1;
+      while(usedNames[name]) { suf++; name = base + '_' + suf + '.' + ext; }
+      usedNames[name] = true;
+      return name;
+    }
+
+    // Stáhni fotku jako Blob a přidej do ZIPu
+    function processItem(idx) {
+      if(idx >= items.length) { finish(); return; }
+      var item = items[idx];
+      showSync('⏳ Stahuji ' + (done + failed + 1) + ' / ' + total + '…');
+      var fileName = buildName(item, idx);
+      fetch(item.url)
+        .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.blob(); })
+        .then(function(blob){ zip.file(fileName, blob); done++; })
+        .catch(function(err){ console.warn('Fotka '+idx+' selhala:', err); failed++; })
+        .then(function(){ processItem(idx + 1); });
+    }
+
+    function finish() {
+      if(done === 0) {
+        hideSync();
+        if(btn) { btn.disabled = false; btn.textContent = '⬇️ Stáhnout ZIP'; }
+        alert('Žádná fotka se nestáhla. Zkontroluj internet a zkus to znovu.');
+        return;
+      }
+      showSync('⏳ Balím ZIP…');
+      zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{level:6} })
+        .then(function(zipBlob){
+          var d = new Date();
+          var tag = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+          var tabName = galleryTab === 0 ? 'samostatne' : 'z_poznamek';
+          var zipName = 'votice_fotky_' + tabName + '_' + tag + '.zip';
+          var url = URL.createObjectURL(zipBlob);
+          var a = document.createElement('a');
+          a.href = url; a.download = zipName;
+          document.body.appendChild(a); a.click();
+          setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+          hideSync();
+          if(btn) { btn.disabled = false; btn.textContent = '⬇️ Stáhnout ZIP'; }
+          var msg = '✅ Staženo ' + done + '/' + total + ' fotek';
+          if(failed) msg += ' (' + failed + ' selhalo)';
+          showToast(msg, 3500);
+        })
+        .catch(function(err){
+          hideSync();
+          if(btn) { btn.disabled = false; btn.textContent = '⬇️ Stáhnout ZIP'; }
+          console.error('ZIP error:', err);
+          alert('Chyba při balení ZIPu: ' + err.message);
+        });
+    }
+
+    processItem(0);
+  });
+}
+
 </script>
 
 <!-- Nová poznámka -->
@@ -3263,7 +3397,10 @@ function renderGallery() {
 <div id="gallery-modal">
   <div id="gallery-header">
     <h3>Fotogalerie</h3>
-    <button id="gallery-close" onclick="closeGallery()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:4px 8px;">&#x2715;</button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button id="gallery-download-all" onclick="downloadGalleryZip()" title="Stáhnout všechny fotky z aktuální záložky jako ZIP" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;font-weight:600;">⬇️ Stáhnout ZIP</button>
+      <button id="gallery-close" onclick="closeGallery()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:4px 8px;">&#x2715;</button>
+    </div>
   </div>
   <div id="gallery-tabs">
     <div class="gallery-tab active" id="gtab-0" onclick="switchGalleryTab(0)">&#128247; Samostatné</div>
